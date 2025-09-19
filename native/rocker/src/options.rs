@@ -1,5 +1,5 @@
 use libc::{c_double, c_int, c_uint, size_t};
-use rocksdb::{DBCompactionStyle, DBCompressionType, DBRecoveryMode, LogLevel, Options};
+use rocksdb::{DBCompactionStyle, DBCompressionType, DBRecoveryMode, LogLevel, Options, MergeOperands};
 use rustler::{Decoder, NifResult, Term};
 use serde::{Deserialize, Serialize};
 
@@ -107,6 +107,7 @@ pub struct RockerOptions {
     // pub set_allow_ingest_behind: Option<bool>,
     // pub add_compact_on_deletion_collector_factory: Option<String>,
     pub set_prefix_extractor_prefix_length: Option<usize>,
+    pub merge_operator: Option<String>,
 }
 
 impl Default for RockerOptions {
@@ -214,6 +215,7 @@ impl Default for RockerOptions {
             // set_allow_ingest_behind: None,
             // add_compact_on_deletion_collector_factory: None,
             set_prefix_extractor_prefix_length: None,
+            merge_operator: None,
         }
     }
 }
@@ -432,6 +434,7 @@ impl<'a> Decoder<'a> for RockerOptions {
                 "set_prefix_extractor_prefix_length" => {
                     opts.set_prefix_extractor_prefix_length = Some(value.decode()?)
                 }
+                "merge_operator" => opts.merge_operator = Some(value.decode()?),
                 _ => (),
             }
         }
@@ -909,6 +912,41 @@ impl From<RockerOptions> for Options {
             db_opts.set_prefix_extractor(prefix_extractor);
         }
 
+        if !opts.merge_operator.is_none() {
+            match opts.merge_operator.unwrap().as_str() {
+                "counter_merge_operator" => {
+                    db_opts.set_merge_operator_associative("counter_merge_operator", counter_merge);
+                }
+                _ => {}
+            }
+        }
+
         db_opts
     }
+}
+
+fn counter_merge(
+    _key: &[u8],
+    existing_val: Option<&[u8]>,
+    operands: &MergeOperands,
+) -> Option<Vec<u8>> {
+    let mut result: i64 = match existing_val {
+        Some(val) => {
+            match std::str::from_utf8(val).ok().and_then(|s| s.parse::<i64>().ok()) {
+                Some(num) => num,
+                None => 0,
+            }
+        },
+        None => 0,
+    };
+
+    for op in operands.iter() {
+        if let Ok(operand_str) = std::str::from_utf8(op) {
+            if let Ok(operand) = operand_str.parse::<i64>() {
+                result += operand;
+            }
+        }
+    }
+
+    Some(result.to_string().into_bytes())
 }

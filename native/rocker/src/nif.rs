@@ -178,6 +178,20 @@ fn delete<'a>(
     }
 }
 
+#[rustler::nif]
+fn merge<'a>(
+    env: Env<'a>,
+    resource: ResourceArc<DbResource>,
+    key: LazyBinary<'a>,
+    operand: LazyBinary<'a>,
+) -> NifResult<Term<'a>> {
+    let db_guard = resource.write();
+    match db_guard.merge(&key.as_ref(), &operand.as_ref()) {
+        Ok(_) => Ok((ok()).encode(env)),
+        Err(e) => Ok((error(), e.to_string()).encode(env)),
+    }
+}
+
 #[rustler::nif(schedule = "DirtyIo")]
 fn write_batch<'a>(env: Env<'a>, resource: ResourceArc<DbResource>, txs: Term<'a>) -> NifResult<Term<'a>> {
     let db_guard = resource.write();

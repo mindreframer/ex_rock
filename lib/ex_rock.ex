@@ -46,6 +46,7 @@ defmodule ExRock do
   end
 
   def delete(_db_ref, _key), do: Erlang.nif_error(:nif_not_loaded)
+  def merge(_db_ref, _key, _operand), do: Erlang.nif_error(:nif_not_loaded)
   def write_batch(_db_ref, _ops), do: Erlang.nif_error(:nif_not_loaded)
   def iterator(_db_ref, _mode), do: Erlang.nif_error(:nif_not_loaded)
 

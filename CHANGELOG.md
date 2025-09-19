@@ -1,10 +1,17 @@
 # 0.3.1
-- bump rust-rocksdb to 0.24
-- bump required rust to 1.85
-- added caching to CI
 
+- Dependencies: Upgraded rust-rocksdb from 0.22.0 to 0.24.0
+  - Latest RocksDB features and performance improvements
+  - Enhanced stability and bug fixes from upstream
+- Build Requirements: Updated minimum Rust version to 1.85+
+  - Required for rust-rocksdb 0.24.0 compatibility
+  - Ensures access to latest Rust compiler optimizations
+- CI/CD Improvements: Added comprehensive caching to GitHub Actions
+  - Mix dependencies caching for faster builds
+  - Rust/Cargo dependencies caching
+  - Build artifacts caching for improved CI performance
+  - Updated actions to latest versions (@v4)
 
-# 0.3.0
 
 - Added comprehensive RocksDB merge operator support
   - Three merge operators: counter, erlang term, and bitset

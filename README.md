@@ -58,6 +58,8 @@ ExRocket requires
 
 
 ## Release
+- bump the version in `mix.exs`
+- bump the version in `native/rocker/Cargo.toml`
 - tag a release `git tag v0.3.0`
 - push the tag: `git push mindrefamer v0.3.0`
 - wait for the compiled libs to be uploaded (takes around 15 minutes if all goes well)

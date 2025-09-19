@@ -106,33 +106,37 @@ defmodule ExRocket.Atomic.Test do
     end
 
     test "write_batch_with_merge", context do
-      {:ok, db} = ExRocket.open(context.db_path, %{
-        create_if_missing: true,
-        merge_operator: "counter_merge_operator"
-      })
+      {:ok, db} =
+        ExRocket.open(context.db_path, %{
+          create_if_missing: true,
+          merge_operator: "counter_merge_operator"
+        })
 
       # Initial counter value
       :ok = ExRocket.put(db, "counter", "10")
 
       # Batch with merge operations
-      {:ok, 4} = ExRocket.write_batch(db, [
-        {:put, "key1", "value1"},
-        {:merge, "counter", "5"},
-        {:merge, "counter", "3"},
-        {:delete, "old_key"}
-      ])
+      {:ok, 4} =
+        ExRocket.write_batch(db, [
+          {:put, "key1", "value1"},
+          {:merge, "counter", "5"},
+          {:merge, "counter", "3"},
+          {:delete, "old_key"}
+        ])
 
       # Verify results
       {:ok, "value1"} = ExRocket.get(db, "key1")
-      {:ok, "18"} = ExRocket.get(db, "counter")  # 10 + 5 + 3 = 18
+      # 10 + 5 + 3 = 18
+      {:ok, "18"} = ExRocket.get(db, "counter")
       :undefined = ExRocket.get(db, "old_key")
     end
 
     test "write_batch_with_merge_cf", context do
-      {:ok, db} = ExRocket.open(context.db_path, %{
-        create_if_missing: true,
-        merge_operator: "counter_merge_operator"
-      })
+      {:ok, db} =
+        ExRocket.open(context.db_path, %{
+          create_if_missing: true,
+          merge_operator: "counter_merge_operator"
+        })
 
       # Create column family with merge operator
       :ok = ExRocket.create_cf(db, "counters", %{merge_operator: "counter_merge_operator"})
@@ -141,15 +145,17 @@ defmodule ExRocket.Atomic.Test do
       :ok = ExRocket.put_cf(db, "counters", "total", "100")
 
       # Batch with column family merge operations
-      {:ok, 3} = ExRocket.write_batch(db, [
-        {:put_cf, "counters", "users", "50"},
-        {:merge_cf, "counters", "total", "25"},
-        {:merge_cf, "counters", "total", "15"}
-      ])
+      {:ok, 3} =
+        ExRocket.write_batch(db, [
+          {:put_cf, "counters", "users", "50"},
+          {:merge_cf, "counters", "total", "25"},
+          {:merge_cf, "counters", "total", "15"}
+        ])
 
       # Verify results
       {:ok, "50"} = ExRocket.get_cf(db, "counters", "users")
-      {:ok, "140"} = ExRocket.get_cf(db, "counters", "total")  # 100 + 25 + 15 = 140
+      # 100 + 25 + 15 = 140
+      {:ok, "140"} = ExRocket.get_cf(db, "counters", "total")
     end
   end
 end

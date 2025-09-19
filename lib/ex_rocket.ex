@@ -52,6 +52,7 @@ defmodule ExRocket do
     case get(db_ref, key) do
       :undefined ->
         :undefined
+
       {:ok, some} ->
         {:ok, :erlang.binary_to_term(some)}
     end
@@ -59,6 +60,7 @@ defmodule ExRocket do
 
   def delete(_db_ref, _key), do: Erlang.nif_error(:nif_not_loaded)
   def merge(_db_ref, _key, _operand), do: Erlang.nif_error(:nif_not_loaded)
+
   @doc """
   Convert the operand to a binary and merge it with the key.
   """
@@ -66,7 +68,9 @@ defmodule ExRocket do
     operandb = :erlang.term_to_binary(operand)
     merge(db_ref, key, operandb)
   end
+
   def merge_cf(_db_ref, _cf_name, _key, _operand), do: Erlang.nif_error(:nif_not_loaded)
+
   def merge_cfb(db_ref, cf_name, key, operand) do
     operandb = :erlang.term_to_binary(operand)
     merge_cf(db_ref, cf_name, key, operandb)

@@ -16,7 +16,8 @@ defmodule ExRocket.Backup.Test do
       {:ok, [{:backup, 1, _, _, _}, {:backup, 2, _, _, _}]} =
         ExRocket.create_backup(db, backup_path)
 
-      {:ok, [{:backup, 1, _, _, _}, {:backup, 2, _, _, _}]} = ExRocket.get_backup_info(backup_path)
+      {:ok, [{:backup, 1, _, _, _}, {:backup, 2, _, _, _}]} =
+        ExRocket.get_backup_info(backup_path)
     end
 
     test "purge_old_backups", context do

@@ -71,4 +71,102 @@ defmodule ExRock.MergeTest do
       end
     end
   end
+
+  describe "erlang merge operator" do
+    test "basic functionality (simple string merge)", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "erlang_merge_operator"
+      })
+
+      # For now, the erlang merge operator falls back to counter behavior for simple strings
+      assert :ok == ExRock.merge(db, "simple_counter", "5")
+      {:ok, result1} = ExRock.get(db, "simple_counter")
+      assert "5" == result1
+
+      # Test merging with existing value
+      assert :ok == ExRock.merge(db, "simple_counter", "3")
+      {:ok, result2} = ExRock.get(db, "simple_counter")
+      assert "8" == result2
+    end
+
+    test "int_add operations", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "erlang_merge_operator"
+      })
+
+      # Test merging with no existing value
+      operand1 = :erlang.term_to_binary({:int_add, 5})
+      assert :ok == ExRock.merge(db, "int_counter", operand1)
+      {:ok, result1} = ExRock.get(db, "int_counter")
+      assert 5 == :erlang.binary_to_term(result1)
+
+      # Test merging with existing value
+      operand2 = :erlang.term_to_binary({:int_add, 3})
+      assert :ok == ExRock.merge(db, "int_counter", operand2)
+      {:ok, result2} = ExRock.get(db, "int_counter")
+      assert 8 == :erlang.binary_to_term(result2)
+
+      # Test negative values
+      operand3 = :erlang.term_to_binary({:int_add, -2})
+      assert :ok == ExRock.merge(db, "int_counter", operand3)
+      {:ok, result3} = ExRock.get(db, "int_counter")
+      assert 6 == :erlang.binary_to_term(result3)
+    end
+
+    test "list_append operations", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "erlang_merge_operator"
+      })
+
+      # Start with initial list
+      initial_list = :erlang.term_to_binary([:a, :b])
+      assert :ok == ExRock.put(db, "my_list", initial_list)
+
+      # Append to existing list
+      operand1 = :erlang.term_to_binary({:list_append, [:c, :d]})
+      assert :ok == ExRock.merge(db, "my_list", operand1)
+      {:ok, result1} = ExRock.get(db, "my_list")
+      assert [:a, :b, :c, :d] == :erlang.binary_to_term(result1)
+
+      # Append more elements
+      operand2 = :erlang.term_to_binary({:list_append, [:e]})
+      assert :ok == ExRock.merge(db, "my_list", operand2)
+      {:ok, result2} = ExRock.get(db, "my_list")
+      assert [:a, :b, :c, :d, :e] == :erlang.binary_to_term(result2)
+    end
+
+    test "binary_append operations", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "erlang_merge_operator"
+      })
+
+      # Start with initial binary
+      initial_binary = :erlang.term_to_binary("hello")
+      assert :ok == ExRock.put(db, "my_binary", initial_binary)
+
+      # Append to existing binary
+      operand1 = :erlang.term_to_binary({:binary_append, " world"})
+      assert :ok == ExRock.merge(db, "my_binary", operand1)
+      {:ok, result1} = ExRock.get(db, "my_binary")
+      assert "hello world" == :erlang.binary_to_term(result1)
+
+      # Append more text
+      operand2 = :erlang.term_to_binary({:binary_append, "!"})
+      assert :ok == ExRock.merge(db, "my_binary", operand2)
+      {:ok, result2} = ExRock.get(db, "my_binary")
+      assert "hello world!" == :erlang.binary_to_term(result2)
+    end
+  end
 end

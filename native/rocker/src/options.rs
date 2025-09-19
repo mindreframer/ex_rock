@@ -1,6 +1,7 @@
 use libc::{c_double, c_int, c_uint, size_t};
 use rocksdb::{DBCompactionStyle, DBCompressionType, DBRecoveryMode, LogLevel, Options, MergeOperands};
 use rustler::{Decoder, NifResult, Term};
+use eetf::{Term as EetfTerm, FixInteger};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
@@ -917,6 +918,9 @@ impl From<RockerOptions> for Options {
                 "counter_merge_operator" => {
                     db_opts.set_merge_operator_associative("counter_merge_operator", counter_merge);
                 }
+                "erlang_merge_operator" => {
+                    db_opts.set_merge_operator_associative("erlang_merge_operator", erlang_merge);
+                }
                 _ => {}
             }
         }
@@ -950,3 +954,115 @@ fn counter_merge(
 
     Some(result.to_string().into_bytes())
 }
+
+fn erlang_merge(
+    _key: &[u8],
+    existing_val: Option<&[u8]>,
+    operands: &MergeOperands,
+) -> Option<Vec<u8>> {
+    // First try ETF term processing
+    let mut current_eetf_term = existing_val.and_then(|val| {
+        EetfTerm::decode(val).ok()
+    });
+
+    let mut is_etf_processing = false;
+
+    // Process each operand
+    for operand_bytes in operands.iter() {
+        if let Ok(operand_eetf_term) = EetfTerm::decode(operand_bytes) {
+            current_eetf_term = process_eetf_merge_operation(current_eetf_term, operand_eetf_term);
+            is_etf_processing = true;
+        }
+    }
+
+    // If ETF processing succeeded, encode result back to ETF
+    if is_etf_processing {
+        if let Some(result_eetf_term) = current_eetf_term {
+            let mut buffer = Vec::new();
+            if result_eetf_term.encode(&mut buffer).is_ok() {
+                return Some(buffer);
+            }
+        }
+    }
+
+    // Fallback to counter behavior for simple string operations
+    let mut result: i64 = match existing_val {
+        Some(val) => {
+            match std::str::from_utf8(val).ok().and_then(|s| s.parse::<i64>().ok()) {
+                Some(num) => num,
+                None => 0,
+            }
+        },
+        None => 0,
+    };
+
+    for op in operands.iter() {
+        if let Ok(operand_str) = std::str::from_utf8(op) {
+            if let Ok(operand) = operand_str.parse::<i64>() {
+                result += operand;
+            }
+        }
+    }
+
+    Some(result.to_string().into_bytes())
+}
+
+fn process_eetf_merge_operation(existing_value: Option<EetfTerm>, operand: EetfTerm) -> Option<EetfTerm> {
+    // Try to parse operand as a tuple (operation_atom, value)
+    if let EetfTerm::Tuple(tuple) = operand {
+        if tuple.elements.len() >= 2 {
+            if let EetfTerm::Atom(op_atom) = &tuple.elements[0] {
+                match op_atom.name.as_str() {
+                    "int_add" => {
+                        // Handle integer addition
+                        let existing_int = existing_value
+                            .as_ref()
+                            .and_then(|val| match val {
+                                EetfTerm::FixInteger(i) => Some(i.value as i64),
+                                EetfTerm::BigInteger(_big_int) => Some(0), // Simplified for now
+                                _ => None,
+                            })
+                            .unwrap_or(0);
+
+                        if let EetfTerm::FixInteger(add_value) = &tuple.elements[1] {
+                            let result = existing_int + (add_value.value as i64);
+                            return Some(EetfTerm::FixInteger(FixInteger { value: result as i32 }));
+                        }
+                    }
+                    "list_append" => {
+                        // Handle list append
+                        let mut existing_list = match &existing_value {
+                            Some(EetfTerm::List(list)) => list.clone(),
+                            _ => eetf::List { elements: Vec::new() },
+                        };
+
+                        if let EetfTerm::List(append_list) = &tuple.elements[1] {
+                            existing_list.elements.extend_from_slice(&append_list.elements);
+                            return Some(EetfTerm::List(existing_list));
+                        }
+                    }
+                    "binary_append" => {
+                        // Handle binary append
+                        let mut existing_binary = match &existing_value {
+                            Some(EetfTerm::Binary(binary)) => binary.clone(),
+                            _ => eetf::Binary { bytes: Vec::new() },
+                        };
+
+                        if let EetfTerm::Binary(append_binary) = &tuple.elements[1] {
+                            existing_binary.bytes.extend_from_slice(&append_binary.bytes);
+                            return Some(EetfTerm::Binary(existing_binary));
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    // If we can't parse as a tuple operation, return existing value
+    existing_value
+}
+
+
+
+

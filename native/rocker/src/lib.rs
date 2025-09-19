@@ -1,4 +1,5 @@
 extern crate core;
+extern crate eetf;
 extern crate libc;
 extern crate rocksdb;
 extern crate rustler;

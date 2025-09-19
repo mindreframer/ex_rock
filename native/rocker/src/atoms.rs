@@ -8,4 +8,15 @@ rustler::atoms! {
     unknown_cf,
     snap,
     backup,
+    // Merge operation atoms
+    int_add,
+    list_append,
+    list_subtract,
+    list_set,
+    list_delete,
+    list_insert,
+    binary_append,
+    binary_erase,
+    binary_insert,
+    binary_replace,
 }

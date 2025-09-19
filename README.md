@@ -57,6 +57,14 @@ ExRocket requires
 * Clang >= 15.
 
 
+## Release
+- tag a release `git tag v0.3.0`
+- push the tag: `git push mindrefamer v0.3.0`
+- wait for the compiled libs to be uploaded (takes around 15 minutes if all goes well)
+- run `mix rustler_precompiled.download ExRocket --all` to download all libs + generate `checksum-Elixir.ExRocket.exs`
+- now you can publish: `mix hex.publish`
+
+
 ## Status
 Passed all the functional and performance tests.
 

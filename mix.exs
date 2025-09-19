@@ -12,7 +12,7 @@ defmodule ExRocket.MixProject do
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
-      description: "RocksDB wrapper for Elixir (based on Rust driver)",
+      description: "RocksDB wrapper for Elixir (based on Rust driver) - fork from ExRock",
       source_ref: @version,
       source_url: @source_url,
       deps: deps(),
@@ -63,6 +63,7 @@ defmodule ExRocket.MixProject do
         ".formatter.exs",
         "mix.exs",
         "README*",
+        "CHEATSHEET*",
         "LICENSE*",
         "CHANGELOG*"
       ]
@@ -72,7 +73,7 @@ defmodule ExRocket.MixProject do
   defp docs do
     [
       main: "ex_rocket",
-      extras: ["README.md"]
+      extras: ["README.md", "CHANGELOG.md", "CHEATSHEET.md"]
     ]
   end
 end

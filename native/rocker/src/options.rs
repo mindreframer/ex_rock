@@ -1041,6 +1041,87 @@ fn process_eetf_merge_operation(existing_value: Option<EetfTerm>, operand: EetfT
                             return Some(EetfTerm::List(existing_list));
                         }
                     }
+                    "list_subtract" => {
+                        // Handle list subtract (remove elements)
+                        let mut existing_list = match &existing_value {
+                            Some(EetfTerm::List(list)) => list.clone(),
+                            _ => eetf::List { elements: Vec::new() },
+                        };
+
+                        if let EetfTerm::List(subtract_list) = &tuple.elements[1] {
+                            // Remove elements that are in subtract_list
+                            existing_list.elements.retain(|elem| {
+                                !subtract_list.elements.contains(elem)
+                            });
+                            return Some(EetfTerm::List(existing_list));
+                        }
+                    }
+                    "list_set" => {
+                        // Handle list set (set element at position)
+                        let mut existing_list = match &existing_value {
+                            Some(EetfTerm::List(list)) => list.clone(),
+                            _ => eetf::List { elements: Vec::new() },
+                        };
+
+                        if tuple.elements.len() >= 3 {
+                            if let (EetfTerm::FixInteger(pos), new_value) = (&tuple.elements[1], &tuple.elements[2]) {
+                                let index = pos.value as usize;
+                                if index < existing_list.elements.len() {
+                                    existing_list.elements[index] = new_value.clone();
+                                }
+                                return Some(EetfTerm::List(existing_list));
+                            }
+                        }
+                    }
+                    "list_delete" => {
+                        // Handle list delete (single position or range)
+                        let mut existing_list = match &existing_value {
+                            Some(EetfTerm::List(list)) => list.clone(),
+                            _ => eetf::List { elements: Vec::new() },
+                        };
+
+                        if tuple.elements.len() >= 2 {
+                            if let EetfTerm::FixInteger(pos) = &tuple.elements[1] {
+                                let start_index = pos.value as usize;
+
+                                if tuple.elements.len() >= 3 {
+                                    // Range delete: {list_delete, start, end}
+                                    if let EetfTerm::FixInteger(end_pos) = &tuple.elements[2] {
+                                        let end_index = end_pos.value as usize;
+                                        if start_index < existing_list.elements.len() && end_index <= existing_list.elements.len() {
+                                            existing_list.elements.drain(start_index..end_index);
+                                        }
+                                    }
+                                } else {
+                                    // Single delete: {list_delete, pos}
+                                    if start_index < existing_list.elements.len() {
+                                        existing_list.elements.remove(start_index);
+                                    }
+                                }
+                                return Some(EetfTerm::List(existing_list));
+                            }
+                        }
+                    }
+                    "list_insert" => {
+                        // Handle list insert (insert elements at position)
+                        let mut existing_list = match &existing_value {
+                            Some(EetfTerm::List(list)) => list.clone(),
+                            _ => eetf::List { elements: Vec::new() },
+                        };
+
+                        if tuple.elements.len() >= 3 {
+                            if let (EetfTerm::FixInteger(pos), EetfTerm::List(insert_list)) = (&tuple.elements[1], &tuple.elements[2]) {
+                                let index = pos.value as usize;
+                                if index <= existing_list.elements.len() {
+                                    // Insert elements at the specified position
+                                    for (i, elem) in insert_list.elements.iter().enumerate() {
+                                        existing_list.elements.insert(index + i, elem.clone());
+                                    }
+                                }
+                                return Some(EetfTerm::List(existing_list));
+                            }
+                        }
+                    }
                     "binary_append" => {
                         // Handle binary append
                         let mut existing_binary = match &existing_value {

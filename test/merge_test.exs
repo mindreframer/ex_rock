@@ -168,5 +168,137 @@ defmodule ExRock.MergeTest do
       {:ok, result2} = ExRock.get(db, "my_binary")
       assert "hello world!" == :erlang.binary_to_term(result2)
     end
+
+    test "list_subtract operations", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "erlang_merge_operator"
+      })
+
+      # Start with initial list
+      initial_list = :erlang.term_to_binary([:a, :b, :c, :d, :e])
+      assert :ok == ExRock.put(db, "my_list", initial_list)
+
+      # Subtract elements
+      operand1 = :erlang.term_to_binary({:list_subtract, [:b, :d]})
+      assert :ok == ExRock.merge(db, "my_list", operand1)
+      {:ok, result1} = ExRock.get(db, "my_list")
+      assert [:a, :c, :e] == :erlang.binary_to_term(result1)
+
+      # Subtract more elements
+      operand2 = :erlang.term_to_binary({:list_subtract, [:a, :e]})
+      assert :ok == ExRock.merge(db, "my_list", operand2)
+      {:ok, result2} = ExRock.get(db, "my_list")
+      assert [:c] == :erlang.binary_to_term(result2)
+    end
+
+    test "list_set operations", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "erlang_merge_operator"
+      })
+
+      # Start with initial list
+      initial_list = :erlang.term_to_binary([:a, :b, :c])
+      assert :ok == ExRock.put(db, "my_list", initial_list)
+
+      # Set element at position 1
+      operand1 = :erlang.term_to_binary({:list_set, 1, :x})
+      assert :ok == ExRock.merge(db, "my_list", operand1)
+      {:ok, result1} = ExRock.get(db, "my_list")
+      assert [:a, :x, :c] == :erlang.binary_to_term(result1)
+
+      # Set element at position 0
+      operand2 = :erlang.term_to_binary({:list_set, 0, :y})
+      assert :ok == ExRock.merge(db, "my_list", operand2)
+      {:ok, result2} = ExRock.get(db, "my_list")
+      assert [:y, :x, :c] == :erlang.binary_to_term(result2)
+    end
+
+    test "list_delete single position operations", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "erlang_merge_operator"
+      })
+
+      # Start with initial list
+      initial_list = :erlang.term_to_binary([:a, :b, :c, :d, :e])
+      assert :ok == ExRock.put(db, "my_list", initial_list)
+
+      # Delete element at position 2
+      operand1 = :erlang.term_to_binary({:list_delete, 2})
+      assert :ok == ExRock.merge(db, "my_list", operand1)
+      {:ok, result1} = ExRock.get(db, "my_list")
+      assert [:a, :b, :d, :e] == :erlang.binary_to_term(result1)
+
+      # Delete element at position 0
+      operand2 = :erlang.term_to_binary({:list_delete, 0})
+      assert :ok == ExRock.merge(db, "my_list", operand2)
+      {:ok, result2} = ExRock.get(db, "my_list")
+      assert [:b, :d, :e] == :erlang.binary_to_term(result2)
+    end
+
+    test "list_delete range operations", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "erlang_merge_operator"
+      })
+
+      # Start with initial list
+      initial_list = :erlang.term_to_binary([:a, :b, :c, :d, :e, :f])
+      assert :ok == ExRock.put(db, "my_list", initial_list)
+
+      # Delete range from position 1 to 4 (elements :b, :c, :d)
+      operand1 = :erlang.term_to_binary({:list_delete, 1, 4})
+      assert :ok == ExRock.merge(db, "my_list", operand1)
+      {:ok, result1} = ExRock.get(db, "my_list")
+      assert [:a, :e, :f] == :erlang.binary_to_term(result1)
+
+      # Delete range from position 0 to 2 (elements :a, :e)
+      operand2 = :erlang.term_to_binary({:list_delete, 0, 2})
+      assert :ok == ExRock.merge(db, "my_list", operand2)
+      {:ok, result2} = ExRock.get(db, "my_list")
+      assert [:f] == :erlang.binary_to_term(result2)
+    end
+
+    test "list_insert operations", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "erlang_merge_operator"
+      })
+
+      # Start with initial list
+      initial_list = :erlang.term_to_binary([:a, :c, :e])
+      assert :ok == ExRock.put(db, "my_list", initial_list)
+
+      # Insert elements at position 1
+      operand1 = :erlang.term_to_binary({:list_insert, 1, [:b, :x]})
+      assert :ok == ExRock.merge(db, "my_list", operand1)
+      {:ok, result1} = ExRock.get(db, "my_list")
+      assert [:a, :b, :x, :c, :e] == :erlang.binary_to_term(result1)
+
+      # Insert elements at position 0 (beginning)
+      operand2 = :erlang.term_to_binary({:list_insert, 0, [:start]})
+      assert :ok == ExRock.merge(db, "my_list", operand2)
+      {:ok, result2} = ExRock.get(db, "my_list")
+      assert [:start, :a, :b, :x, :c, :e] == :erlang.binary_to_term(result2)
+
+      # Insert elements at end
+      list_len = length(:erlang.binary_to_term(result2))
+      operand3 = :erlang.term_to_binary({:list_insert, list_len, [:end]})
+      assert :ok == ExRock.merge(db, "my_list", operand3)
+      {:ok, result3} = ExRock.get(db, "my_list")
+      assert [:start, :a, :b, :x, :c, :e, :end] == :erlang.binary_to_term(result3)
+    end
   end
 end

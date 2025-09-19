@@ -6,6 +6,7 @@ extern crate rustler;
 extern crate serde;
 
 mod atoms;
+mod merge;
 mod nif;
 mod options;
 mod read_options;

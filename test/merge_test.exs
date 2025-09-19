@@ -300,5 +300,126 @@ defmodule ExRock.MergeTest do
       {:ok, result3} = ExRock.get(db, "my_list")
       assert [:start, :a, :b, :x, :c, :e, :end] == :erlang.binary_to_term(result3)
     end
+
+    test "binary_erase operations", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "erlang_merge_operator"
+      })
+
+      # Start with initial binary
+      initial_binary = :erlang.term_to_binary("hello world!")
+      assert :ok == ExRock.put(db, "my_binary", initial_binary)
+
+      # Erase 6 bytes starting at position 5 (remove " world")
+      operand1 = :erlang.term_to_binary({:binary_erase, 5, 6})
+      assert :ok == ExRock.merge(db, "my_binary", operand1)
+      {:ok, result1} = ExRock.get(db, "my_binary")
+      assert "hello!" == :erlang.binary_to_term(result1)
+
+      # Erase 1 byte at position 5 (remove "!")
+      operand2 = :erlang.term_to_binary({:binary_erase, 5, 1})
+      assert :ok == ExRock.merge(db, "my_binary", operand2)
+      {:ok, result2} = ExRock.get(db, "my_binary")
+      assert "hello" == :erlang.binary_to_term(result2)
+    end
+
+    test "binary_insert operations", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "erlang_merge_operator"
+      })
+
+      # Start with initial binary
+      initial_binary = :erlang.term_to_binary("hello")
+      assert :ok == ExRock.put(db, "my_binary", initial_binary)
+
+      # Insert " world" at position 5 (end)
+      operand1 = :erlang.term_to_binary({:binary_insert, 5, " world"})
+      assert :ok == ExRock.merge(db, "my_binary", operand1)
+      {:ok, result1} = ExRock.get(db, "my_binary")
+      assert "hello world" == :erlang.binary_to_term(result1)
+
+      # Insert "beautiful " at position 6 (after "hello ")
+      operand2 = :erlang.term_to_binary({:binary_insert, 6, "beautiful "})
+      assert :ok == ExRock.merge(db, "my_binary", operand2)
+      {:ok, result2} = ExRock.get(db, "my_binary")
+      assert "hello beautiful world" == :erlang.binary_to_term(result2)
+
+      # Insert "!" at the end
+      current_len = byte_size(:erlang.binary_to_term(result2))
+      operand3 = :erlang.term_to_binary({:binary_insert, current_len, "!"})
+      assert :ok == ExRock.merge(db, "my_binary", operand3)
+      {:ok, result3} = ExRock.get(db, "my_binary")
+      assert "hello beautiful world!" == :erlang.binary_to_term(result3)
+    end
+
+    test "binary_replace operations", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "erlang_merge_operator"
+      })
+
+      # Start with initial binary
+      initial_binary = :erlang.term_to_binary("hello world!")
+      assert :ok == ExRock.put(db, "my_binary", initial_binary)
+
+      # Replace 5 bytes starting at position 6 (replace "world" with "there")
+      operand1 = :erlang.term_to_binary({:binary_replace, 6, 5, "there"})
+      assert :ok == ExRock.merge(db, "my_binary", operand1)
+      {:ok, result1} = ExRock.get(db, "my_binary")
+      assert "hello there!" == :erlang.binary_to_term(result1)
+
+      # Replace 1 byte at position 11 (replace "!" with "?")
+      operand2 = :erlang.term_to_binary({:binary_replace, 11, 1, "?"})
+      assert :ok == ExRock.merge(db, "my_binary", operand2)
+      {:ok, result2} = ExRock.get(db, "my_binary")
+      assert "hello there?" == :erlang.binary_to_term(result2)
+
+      # Replace with longer text
+      operand3 = :erlang.term_to_binary({:binary_replace, 6, 5, "everyone"})
+      assert :ok == ExRock.merge(db, "my_binary", operand3)
+      {:ok, result3} = ExRock.get(db, "my_binary")
+      assert "hello everyone?" == :erlang.binary_to_term(result3)
+    end
+
+    test "mixed binary operations", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "erlang_merge_operator"
+      })
+
+      # Start with initial binary
+      initial_binary = :erlang.term_to_binary("test")
+      assert :ok == ExRock.put(db, "my_binary", initial_binary)
+
+      # Multiple operations in sequence
+      # 1. Append " string"
+      operand1 = :erlang.term_to_binary({:binary_append, " string"})
+      assert :ok == ExRock.merge(db, "my_binary", operand1)
+
+      # 2. Insert "ing " at position 4
+      operand2 = :erlang.term_to_binary({:binary_insert, 4, "ing "})
+      assert :ok == ExRock.merge(db, "my_binary", operand2)
+
+      # 3. Replace "test" with "work"
+      operand3 = :erlang.term_to_binary({:binary_replace, 0, 4, "work"})
+      assert :ok == ExRock.merge(db, "my_binary", operand3)
+
+      # 4. Erase "ing " (4 bytes at position 4)
+      operand4 = :erlang.term_to_binary({:binary_erase, 4, 4})
+      assert :ok == ExRock.merge(db, "my_binary", operand4)
+
+      {:ok, result} = ExRock.get(db, "my_binary")
+      assert "work string" == :erlang.binary_to_term(result)
+    end
   end
 end

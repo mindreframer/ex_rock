@@ -1134,6 +1134,74 @@ fn process_eetf_merge_operation(existing_value: Option<EetfTerm>, operand: EetfT
                             return Some(EetfTerm::Binary(existing_binary));
                         }
                     }
+                    "binary_erase" => {
+                        // Handle binary erase (erase bytes at position)
+                        let mut existing_binary = match &existing_value {
+                            Some(EetfTerm::Binary(binary)) => binary.clone(),
+                            _ => eetf::Binary { bytes: Vec::new() },
+                        };
+
+                        if tuple.elements.len() >= 3 {
+                            if let (EetfTerm::FixInteger(pos), EetfTerm::FixInteger(count)) = (&tuple.elements[1], &tuple.elements[2]) {
+                                let start_pos = pos.value as usize;
+                                let erase_count = count.value as usize;
+                                let end_pos = start_pos + erase_count;
+
+                                if start_pos <= existing_binary.bytes.len() && end_pos <= existing_binary.bytes.len() {
+                                    existing_binary.bytes.drain(start_pos..end_pos);
+                                }
+                                return Some(EetfTerm::Binary(existing_binary));
+                            }
+                        }
+                    }
+                    "binary_insert" => {
+                        // Handle binary insert (insert bytes at position)
+                        let mut existing_binary = match &existing_value {
+                            Some(EetfTerm::Binary(binary)) => binary.clone(),
+                            _ => eetf::Binary { bytes: Vec::new() },
+                        };
+
+                        if tuple.elements.len() >= 3 {
+                            if let (EetfTerm::FixInteger(pos), EetfTerm::Binary(insert_binary)) = (&tuple.elements[1], &tuple.elements[2]) {
+                                let insert_pos = pos.value as usize;
+
+                                if insert_pos <= existing_binary.bytes.len() {
+                                    // Insert bytes at the specified position
+                                    for (i, &byte) in insert_binary.bytes.iter().enumerate() {
+                                        existing_binary.bytes.insert(insert_pos + i, byte);
+                                    }
+                                }
+                                return Some(EetfTerm::Binary(existing_binary));
+                            }
+                        }
+                    }
+                    "binary_replace" => {
+                        // Handle binary replace (replace bytes at position)
+                        let mut existing_binary = match &existing_value {
+                            Some(EetfTerm::Binary(binary)) => binary.clone(),
+                            _ => eetf::Binary { bytes: Vec::new() },
+                        };
+
+                        if tuple.elements.len() >= 4 {
+                            if let (EetfTerm::FixInteger(pos), EetfTerm::FixInteger(count), EetfTerm::Binary(replace_binary)) =
+                                (&tuple.elements[1], &tuple.elements[2], &tuple.elements[3]) {
+                                let start_pos = pos.value as usize;
+                                let replace_count = count.value as usize;
+                                let end_pos = start_pos + replace_count;
+
+                                if start_pos <= existing_binary.bytes.len() && end_pos <= existing_binary.bytes.len() {
+                                    // Remove the bytes to be replaced
+                                    existing_binary.bytes.drain(start_pos..end_pos);
+
+                                    // Insert the replacement bytes
+                                    for (i, &byte) in replace_binary.bytes.iter().enumerate() {
+                                        existing_binary.bytes.insert(start_pos + i, byte);
+                                    }
+                                }
+                                return Some(EetfTerm::Binary(existing_binary));
+                            }
+                        }
+                    }
                     _ => {}
                 }
             }

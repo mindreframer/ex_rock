@@ -192,6 +192,26 @@ fn merge<'a>(
     }
 }
 
+#[rustler::nif]
+fn merge_cf<'a>(
+    env: Env<'a>,
+    resource: ResourceArc<DbResource>,
+    cf_name: String,
+    key: LazyBinary<'a>,
+    operand: LazyBinary<'a>,
+) -> NifResult<Term<'a>> {
+    let db_guard = resource.write();
+    match db_guard.cf_handle(&cf_name.as_ref()) {
+        Some(cf_handler) => {
+            match db_guard.merge_cf(cf_handler, &key.as_ref(), &operand.as_ref()) {
+                Ok(_) => Ok((ok()).encode(env)),
+                Err(e) => Ok((error(), e.to_string()).encode(env)),
+            }
+        }
+        None => Ok((error(), format!("Column family '{}' not found", cf_name)).encode(env)),
+    }
+}
+
 #[rustler::nif(schedule = "DirtyIo")]
 fn write_batch<'a>(env: Env<'a>, resource: ResourceArc<DbResource>, txs: Term<'a>) -> NifResult<Term<'a>> {
     let db_guard = resource.write();

@@ -565,4 +565,157 @@ defmodule ExRock.MergeTest do
       assert last_byte == 16  # 00010000 (bit 4 set)
     end
   end
+
+  describe "column family merge operations" do
+    test "counter merge operator with column families", context do
+      path = context.db_path
+
+      # Open database with merge operator first
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "counter_merge_operator"
+      })
+
+      # Create additional column family with merge operator
+      assert :ok == ExRock.create_cf(db, "counters", %{merge_operator: "counter_merge_operator"})
+
+      # Test merge in custom column family
+      assert :ok == ExRock.merge_cf(db, "counters", "cf_counter", "10")
+      assert :ok == ExRock.merge_cf(db, "counters", "cf_counter", "3")
+      {:ok, result1} = ExRock.get_cf(db, "counters", "cf_counter")
+      assert "13" == result1
+
+      # Test more merge operations
+      assert :ok == ExRock.merge_cf(db, "counters", "cf_counter", "-5")
+      {:ok, result2} = ExRock.get_cf(db, "counters", "cf_counter")
+      assert "8" == result2
+
+      # Test merge in a different key
+      assert :ok == ExRock.merge_cf(db, "counters", "another_counter", "20")
+      assert :ok == ExRock.merge_cf(db, "counters", "another_counter", "5")
+      {:ok, result3} = ExRock.get_cf(db, "counters", "another_counter")
+      assert "25" == result3
+    end
+
+    test "erlang merge operator with column families", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "erlang_merge_operator"
+      })
+
+      # Create additional column family with merge operator
+      assert :ok == ExRock.create_cf(db, "data", %{merge_operator: "erlang_merge_operator"})
+
+      # Test int_add operations in column family
+      operand1 = :erlang.term_to_binary({:int_add, 5})
+      assert :ok == ExRock.merge_cf(db, "data", "int_counter", operand1)
+
+      operand2 = :erlang.term_to_binary({:int_add, 10})
+      assert :ok == ExRock.merge_cf(db, "data", "int_counter", operand2)
+
+      # Verify operations
+      {:ok, result1} = ExRock.get_cf(db, "data", "int_counter")
+      assert 15 == :erlang.binary_to_term(result1)
+
+      # Test list operations in column families
+      initial_list = :erlang.term_to_binary([:a, :b])
+      assert :ok == ExRock.put_cf(db, "data", "my_list", initial_list)
+
+      operand3 = :erlang.term_to_binary({:list_append, [:c, :d]})
+      assert :ok == ExRock.merge_cf(db, "data", "my_list", operand3)
+
+      {:ok, result3} = ExRock.get_cf(db, "data", "my_list")
+      assert [:a, :b, :c, :d] == :erlang.binary_to_term(result3)
+    end
+
+    test "bitset merge operator with column families", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "bitset_merge_operator"
+      })
+
+      # Create additional column family with merge operator
+      assert :ok == ExRock.create_cf(db, "flags", %{merge_operator: "bitset_merge_operator"})
+
+      # Test bitset operations in main database
+      assert :ok == ExRock.merge(db, "main_flags", "+0")
+      assert :ok == ExRock.merge(db, "main_flags", "+3")
+
+      {:ok, result1} = ExRock.get(db, "main_flags")
+      assert <<9>> == result1  # 00001001 (bits 0 and 3 set)
+
+      # Test bitset operations in custom column family
+      assert :ok == ExRock.merge_cf(db, "flags", "user_flags", "+1")
+      assert :ok == ExRock.merge_cf(db, "flags", "user_flags", "+5")
+      assert :ok == ExRock.merge_cf(db, "flags", "user_flags", "+7")
+
+      {:ok, result2} = ExRock.get_cf(db, "flags", "user_flags")
+      assert <<162>> == result2  # 10100010 (bits 1, 5, 7 set)
+
+      # Test clearing in one location doesn't affect the other
+      assert :ok == ExRock.merge_cf(db, "flags", "user_flags", "")
+
+      {:ok, result3} = ExRock.get(db, "main_flags")
+      assert <<9>> == result3  # Should remain unchanged
+
+      {:ok, result4} = ExRock.get_cf(db, "flags", "user_flags")
+      assert <<>> == result4  # Should be cleared
+    end
+
+    test "mixed merge operations across column families", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "erlang_merge_operator"
+      })
+
+      # Create column families with appropriate merge operators
+      assert :ok == ExRock.create_cf(db, "counters", %{merge_operator: "counter_merge_operator"})
+      assert :ok == ExRock.create_cf(db, "data", %{merge_operator: "erlang_merge_operator"})
+
+      # Counter operations in counters CF (fallback behavior)
+      assert :ok == ExRock.merge_cf(db, "counters", "total", "100")
+      assert :ok == ExRock.merge_cf(db, "counters", "total", "50")
+
+      # ETF operations in data CF
+      operand1 = :erlang.term_to_binary({:int_add, 25})
+      assert :ok == ExRock.merge_cf(db, "data", "etf_counter", operand1)
+
+      list_data = :erlang.term_to_binary([:item1])
+      assert :ok == ExRock.put_cf(db, "data", "items", list_data)
+
+      operand2 = :erlang.term_to_binary({:list_append, [:item2, :item3]})
+      assert :ok == ExRock.merge_cf(db, "data", "items", operand2)
+
+      # Verify all operations worked independently
+      {:ok, counter_result} = ExRock.get_cf(db, "counters", "total")
+      assert "150" == counter_result
+
+      {:ok, etf_result} = ExRock.get_cf(db, "data", "etf_counter")
+      assert 25 == :erlang.binary_to_term(etf_result)
+
+      {:ok, list_result} = ExRock.get_cf(db, "data", "items")
+      assert [:item1, :item2, :item3] == :erlang.binary_to_term(list_result)
+    end
+
+    test "error handling for non-existent column families", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "counter_merge_operator"
+      })
+
+      # Attempt to merge in non-existent column family should fail
+      case ExRock.merge_cf(db, "non_existent", "key", "5") do
+        {:error, _reason} -> :ok
+        :ok -> flunk("Expected merge_cf to fail for non-existent column family")
+      end
+    end
+  end
 end

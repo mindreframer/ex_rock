@@ -24,6 +24,7 @@ rustler::init!(
         nif::get,
         nif::delete,
         nif::merge,
+        nif::merge_cf,
         nif::write_batch,
         nif::iterator,
         nif::iterator_range,

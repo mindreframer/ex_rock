@@ -921,6 +921,9 @@ impl From<RockerOptions> for Options {
                 "erlang_merge_operator" => {
                     db_opts.set_merge_operator_associative("erlang_merge_operator", erlang_merge);
                 }
+                "bitset_merge_operator" => {
+                    db_opts.set_merge_operator_associative("bitset_merge_operator", bitset_merge);
+                }
                 _ => {}
             }
         }
@@ -1210,6 +1213,64 @@ fn process_eetf_merge_operation(existing_value: Option<EetfTerm>, operand: EetfT
 
     // If we can't parse as a tuple operation, return existing value
     existing_value
+}
+
+fn bitset_merge(
+    _key: &[u8],
+    existing_val: Option<&[u8]>,
+    operands: &MergeOperands,
+) -> Option<Vec<u8>> {
+    // Initialize bitset from existing value or empty
+    let mut bitset = match existing_val {
+        Some(val) => val.to_vec(),
+        None => Vec::new(),
+    };
+
+    // Process each operand
+    for operand_bytes in operands.iter() {
+        if let Ok(operand_str) = std::str::from_utf8(operand_bytes) {
+            let trimmed = operand_str.trim();
+
+            if trimmed.is_empty() {
+                // Empty string means clear the bitset
+                bitset.clear();
+            } else if trimmed.starts_with('+') {
+                // Set bit at position
+                if let Ok(pos) = trimmed[1..].parse::<usize>() {
+                    set_bit(&mut bitset, pos);
+                }
+            } else if trimmed.starts_with('-') {
+                // Clear bit at position
+                if let Ok(pos) = trimmed[1..].parse::<usize>() {
+                    clear_bit(&mut bitset, pos);
+                }
+            }
+        }
+    }
+
+    Some(bitset)
+}
+
+fn set_bit(bitset: &mut Vec<u8>, pos: usize) {
+    let byte_index = pos / 8;
+    let bit_index = pos % 8;
+
+    // Expand bitset if needed
+    if byte_index >= bitset.len() {
+        bitset.resize(byte_index + 1, 0);
+    }
+
+    bitset[byte_index] |= 1 << bit_index;
+}
+
+fn clear_bit(bitset: &mut Vec<u8>, pos: usize) {
+    let byte_index = pos / 8;
+    let bit_index = pos % 8;
+
+    // Only clear if the byte exists
+    if byte_index < bitset.len() {
+        bitset[byte_index] &= !(1 << bit_index);
+    }
 }
 
 

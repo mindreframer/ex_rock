@@ -422,4 +422,147 @@ defmodule ExRock.MergeTest do
       assert "work string" == :erlang.binary_to_term(result)
     end
   end
+
+  describe "bitset merge operator" do
+    test "basic bit setting and clearing", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "bitset_merge_operator"
+      })
+
+      # Set bit at position 0
+      assert :ok == ExRock.merge(db, "bitset", "+0")
+      {:ok, result1} = ExRock.get(db, "bitset")
+      assert <<1>> == result1
+
+      # Set bit at position 3
+      assert :ok == ExRock.merge(db, "bitset", "+3")
+      {:ok, result2} = ExRock.get(db, "bitset")
+      assert <<9>> == result2  # 00001001 (bits 0 and 3 set)
+
+      # Clear bit at position 0
+      assert :ok == ExRock.merge(db, "bitset", "-0")
+      {:ok, result3} = ExRock.get(db, "bitset")
+      assert <<8>> == result3  # 00001000 (only bit 3 set)
+    end
+
+    test "setting bits across byte boundaries", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "bitset_merge_operator"
+      })
+
+      # Set bit at position 15 (second byte, bit 7)
+      assert :ok == ExRock.merge(db, "bitset", "+15")
+      {:ok, result1} = ExRock.get(db, "bitset")
+      assert <<0, 128>> == result1  # Second byte: 10000000
+
+      # Set bit at position 8 (second byte, bit 0)
+      assert :ok == ExRock.merge(db, "bitset", "+8")
+      {:ok, result2} = ExRock.get(db, "bitset")
+      assert <<0, 129>> == result2  # Second byte: 10000001
+
+      # Set bit at position 0 (first byte)
+      assert :ok == ExRock.merge(db, "bitset", "+0")
+      {:ok, result3} = ExRock.get(db, "bitset")
+      assert <<1, 129>> == result3
+    end
+
+    test "clearing entire bitset", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "bitset_merge_operator"
+      })
+
+      # Set multiple bits
+      assert :ok == ExRock.merge(db, "bitset", "+0")
+      assert :ok == ExRock.merge(db, "bitset", "+5")
+      assert :ok == ExRock.merge(db, "bitset", "+12")
+
+      {:ok, result1} = ExRock.get(db, "bitset")
+      assert byte_size(result1) > 0
+
+      # Clear entire bitset
+      assert :ok == ExRock.merge(db, "bitset", "")
+      {:ok, result2} = ExRock.get(db, "bitset")
+      assert <<>> == result2
+    end
+
+    test "multiple operations in sequence", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "bitset_merge_operator"
+      })
+
+      # Set bits 1, 3, 5
+      assert :ok == ExRock.merge(db, "bitset", "+1")
+      assert :ok == ExRock.merge(db, "bitset", "+3")
+      assert :ok == ExRock.merge(db, "bitset", "+5")
+
+      {:ok, result1} = ExRock.get(db, "bitset")
+      assert <<42>> == result1  # 00101010 (bits 1, 3, 5 set)
+
+      # Clear bit 3
+      assert :ok == ExRock.merge(db, "bitset", "-3")
+      {:ok, result2} = ExRock.get(db, "bitset")
+      assert <<34>> == result2  # 00100010 (bits 1, 5 set)
+
+      # Set bit 7
+      assert :ok == ExRock.merge(db, "bitset", "+7")
+      {:ok, result3} = ExRock.get(db, "bitset")
+      assert <<162>> == result3  # 10100010 (bits 1, 5, 7 set)
+    end
+
+    test "clearing non-existent bits", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "bitset_merge_operator"
+      })
+
+      # Set bit 3
+      assert :ok == ExRock.merge(db, "bitset", "+3")
+      {:ok, result1} = ExRock.get(db, "bitset")
+      assert <<8>> == result1
+
+      # Try to clear bit 10 (beyond current bitset size)
+      assert :ok == ExRock.merge(db, "bitset", "-10")
+      {:ok, result2} = ExRock.get(db, "bitset")
+      assert <<8>> == result2  # Should remain unchanged
+
+      # Clear existing bit 3
+      assert :ok == ExRock.merge(db, "bitset", "-3")
+      {:ok, result3} = ExRock.get(db, "bitset")
+      assert <<0>> == result3
+    end
+
+    test "large bit positions", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "bitset_merge_operator"
+      })
+
+      # Set bit at position 100
+      assert :ok == ExRock.merge(db, "bitset", "+100")
+      {:ok, result1} = ExRock.get(db, "bitset")
+
+      # Should have 13 bytes (100 / 8 = 12, + 1 for the bit at position 100 % 8 = 4)
+      assert byte_size(result1) == 13
+
+      # Check that bit 4 in the 13th byte (index 12) is set
+      <<_::binary-size(12), last_byte::integer>> = result1
+      assert last_byte == 16  # 00010000 (bit 4 set)
+    end
+  end
 end

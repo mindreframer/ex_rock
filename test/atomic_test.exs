@@ -104,5 +104,52 @@ defmodule ExRock.Atomic.Test do
       :ok = ExRock.put(db, "k1", "v1")
       {:ok, true} = ExRock.key_may_exist(db, "k1")
     end
+
+    test "write_batch_with_merge", context do
+      {:ok, db} = ExRock.open(context.db_path, %{
+        create_if_missing: true,
+        merge_operator: "counter_merge_operator"
+      })
+
+      # Initial counter value
+      :ok = ExRock.put(db, "counter", "10")
+
+      # Batch with merge operations
+      {:ok, 4} = ExRock.write_batch(db, [
+        {:put, "key1", "value1"},
+        {:merge, "counter", "5"},
+        {:merge, "counter", "3"},
+        {:delete, "old_key"}
+      ])
+
+      # Verify results
+      {:ok, "value1"} = ExRock.get(db, "key1")
+      {:ok, "18"} = ExRock.get(db, "counter")  # 10 + 5 + 3 = 18
+      :undefined = ExRock.get(db, "old_key")
+    end
+
+    test "write_batch_with_merge_cf", context do
+      {:ok, db} = ExRock.open(context.db_path, %{
+        create_if_missing: true,
+        merge_operator: "counter_merge_operator"
+      })
+
+      # Create column family with merge operator
+      :ok = ExRock.create_cf(db, "counters", %{merge_operator: "counter_merge_operator"})
+
+      # Initial values
+      :ok = ExRock.put_cf(db, "counters", "total", "100")
+
+      # Batch with column family merge operations
+      {:ok, 3} = ExRock.write_batch(db, [
+        {:put_cf, "counters", "users", "50"},
+        {:merge_cf, "counters", "total", "25"},
+        {:merge_cf, "counters", "total", "15"}
+      ])
+
+      # Verify results
+      {:ok, "50"} = ExRock.get_cf(db, "counters", "users")
+      {:ok, "140"} = ExRock.get_cf(db, "counters", "total")  # 100 + 25 + 15 = 140
+    end
   end
 end

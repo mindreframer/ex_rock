@@ -245,6 +245,18 @@ fn write_batch<'a>(env: Env<'a>, resource: ResourceArc<DbResource>, txs: Term<'a
                     let cf_handler = db_guard.cf_handle(&cf.as_str()).unwrap();
                     let _ = batch.delete_cf(cf_handler, &key.as_ref());
                 }
+                "merge" => {
+                    let key: Binary = terms[1].decode()?;
+                    let operand: Binary = terms[2].decode()?;
+                    let _ = batch.merge(&key.as_ref(), &operand.as_ref());
+                }
+                "merge_cf" => {
+                    let cf: String = terms[1].decode()?;
+                    let key: Binary = terms[2].decode()?;
+                    let operand: Binary = terms[3].decode()?;
+                    let cf_handler = db_guard.cf_handle(&cf.as_str()).unwrap();
+                    let _ = batch.merge_cf(cf_handler, &key.as_ref(), &operand.as_ref());
+                }
                 _ => {}
             }
         }

@@ -45,9 +45,33 @@ defmodule ExRock do
     end
   end
 
+  @doc """
+  Get a value from the database and convert it to an Erlang term.
+  """
+  def getb(db_ref, key) do
+    case get(db_ref, key) do
+      :undefined ->
+        :undefined
+      {:ok, some} ->
+        {:ok, :erlang.binary_to_term(some)}
+    end
+  end
+
   def delete(_db_ref, _key), do: Erlang.nif_error(:nif_not_loaded)
   def merge(_db_ref, _key, _operand), do: Erlang.nif_error(:nif_not_loaded)
+  @doc """
+  Convert the operand to a binary and merge it with the key.
+  """
+  def mergeb(db_ref, key, operand) do
+    operandb = :erlang.term_to_binary(operand)
+    merge(db_ref, key, operandb)
+  end
   def merge_cf(_db_ref, _cf_name, _key, _operand), do: Erlang.nif_error(:nif_not_loaded)
+  def merge_cfb(db_ref, cf_name, key, operand) do
+    operandb = :erlang.term_to_binary(operand)
+    merge_cf(db_ref, cf_name, key, operandb)
+  end
+
   def write_batch(_db_ref, _ops), do: Erlang.nif_error(:nif_not_loaded)
   def iterator(_db_ref, _mode), do: Erlang.nif_error(:nif_not_loaded)
 
@@ -74,6 +98,16 @@ defmodule ExRock do
 
       some ->
         some
+    end
+  end
+
+  def get_cfb(db_ref, cf_name, key) do
+    case get_cf(db_ref, cf_name, key) do
+      :undefined ->
+        :undefined
+
+      {:ok, some} ->
+        {:ok, :erlang.binary_to_term(some)}
     end
   end
 

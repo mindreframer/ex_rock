@@ -1,10 +1,10 @@
-defmodule ExRock.Init.Test do
-  use ExRock.Case, async: true
+defmodule ExRocket.Init.Test do
+  use ExRocket.Case, async: true
 
   describe "create or open database" do
     test "open", context do
       {:ok, db} =
-        ExRock.open(context.db_path, %{
+        ExRocket.open(context.db_path, %{
           create_if_missing: true,
           set_max_open_files: 1000,
           set_use_fsync: false,
@@ -29,14 +29,14 @@ defmodule ExRock.Init.Test do
     end
 
     test "open_default", context do
-      {:ok, db} = ExRock.open(context.db_path)
+      {:ok, db} = ExRocket.open(context.db_path)
       assert is_reference(db)
     end
 
     test "open_multi_ptr", context do
       1..5
       |> Enum.each(fn idx ->
-        {:ok, db1} = ExRock.open("#{context.db_path}_#{idx}")
+        {:ok, db1} = ExRocket.open("#{context.db_path}_#{idx}")
         assert is_reference(db1)
       end)
     end
@@ -45,18 +45,18 @@ defmodule ExRock.Init.Test do
       test = self()
 
       spawn(fn ->
-        {:ok, db} = ExRock.open(context.db_path)
-        :ok = ExRock.put(db, "k1", "v1")
+        {:ok, db} = ExRocket.open(context.db_path)
+        :ok = ExRocket.put(db, "k1", "v1")
         send(test, :ok)
       end)
 
       assert_receive(:ok, 1000)
 
-      {:ok, db_read} = ExRock.open_for_read_only(context.db_path)
-      {:ok, "v1"} = ExRock.get(db_read, "k1")
+      {:ok, db_read} = ExRocket.open_for_read_only(context.db_path)
+      {:ok, "v1"} = ExRocket.get(db_read, "k1")
 
       {:error, "Not implemented: Not supported operation in read only mode."} =
-        ExRock.put(db_read, "k2", "v2")
+        ExRocket.put(db_read, "k2", "v2")
     end
   end
 
@@ -66,44 +66,44 @@ defmodule ExRock.Init.Test do
       path = context.db_path <> "_for_destroy"
 
       spawn(fn ->
-        {:ok, db} = ExRock.open(path)
+        {:ok, db} = ExRocket.open(path)
         true = is_reference(db)
         send(test, :ok)
       end)
 
       assert_receive(:ok, 1000)
       Process.sleep(100)
-      assert :ok == ExRock.destroy(path)
+      assert :ok == ExRocket.destroy(path)
     end
 
     test "repair", context do
       test = self()
 
       spawn(fn ->
-        {:ok, db} = ExRock.open(context.db_path)
+        {:ok, db} = ExRocket.open(context.db_path)
         true = is_reference(db)
         send(test, :ok)
       end)
 
       assert_receive(:ok, 1000)
-      assert :ok == ExRock.repair(context.db_path)
+      assert :ok == ExRocket.repair(context.db_path)
     end
   end
 
   describe "db tools" do
     test "get_db_path", context do
       path = context.db_path
-      {:ok, db} = ExRock.open(path)
-      {:ok, ^path} = ExRock.get_db_path(db)
+      {:ok, db} = ExRocket.open(path)
+      {:ok, ^path} = ExRocket.get_db_path(db)
     end
 
     test "latest_sequence_number", context do
-      {:ok, db} = ExRock.open(context.db_path)
-      {:ok, 0} = ExRock.latest_sequence_number(db)
-      :ok = ExRock.put(db, "k1", "v1")
-      {:ok, 1} = ExRock.latest_sequence_number(db)
-      :ok = ExRock.put(db, "k2", "v2")
-      {:ok, 2} = ExRock.latest_sequence_number(db)
+      {:ok, db} = ExRocket.open(context.db_path)
+      {:ok, 0} = ExRocket.latest_sequence_number(db)
+      :ok = ExRocket.put(db, "k1", "v1")
+      {:ok, 1} = ExRocket.latest_sequence_number(db)
+      :ok = ExRocket.put(db, "k2", "v2")
+      {:ok, 2} = ExRocket.latest_sequence_number(db)
     end
   end
 end

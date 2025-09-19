@@ -1,6 +1,6 @@
-defmodule ExRock do
+defmodule ExRocket do
   @moduledoc """
-  ExRock - wrapper for RocksDB.
+  ExRocket - wrapper for RocksDB.
   """
 
   alias :erlang, as: Erlang
@@ -8,9 +8,9 @@ defmodule ExRock do
   @version Mix.Project.config()[:version]
 
   use RustlerPrecompiled,
-    otp_app: :ex_rock,
+    otp_app: :ex_rocket,
     crate: "rocker",
-    base_url: "https://github.com/Vonmo/ex_rock/releases/download/v#{@version}",
+    base_url: "https://github.com/mindreframer/ex_rocket/releases/download/v#{@version}",
     nif_versions: ["2.16", "2.17"],
     targets: ~w(
       aarch64-apple-darwin

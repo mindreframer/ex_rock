@@ -1,19 +1,19 @@
-defmodule ExRock.Checkpoint.Test do
-  use ExRock.Case, async: true
+defmodule ExRocket.Checkpoint.Test do
+  use ExRocket.Case, async: true
 
   describe "checkpoint" do
     test "create_checkpoint", context do
       path = context.db_path
       cp_path = path <> "_cp"
-      ExRock.destroy(path)
-      ExRock.destroy(cp_path)
+      ExRocket.destroy(path)
+      ExRocket.destroy(cp_path)
 
-      {:ok, db} = ExRock.open(path)
-      :ok = ExRock.put(db, "k0", "v0")
-      :ok = ExRock.create_checkpoint(db, cp_path)
+      {:ok, db} = ExRocket.open(path)
+      :ok = ExRocket.put(db, "k0", "v0")
+      :ok = ExRocket.create_checkpoint(db, cp_path)
 
-      {:ok, backup_db} = ExRock.open(cp_path)
-      {:ok, "v0"} = ExRock.get(backup_db, "k0")
+      {:ok, backup_db} = ExRocket.open(cp_path)
+      {:ok, "v0"} = ExRocket.get(backup_db, "k0")
     end
   end
 end

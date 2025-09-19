@@ -12,7 +12,7 @@ mod options;
 mod read_options;
 
 rustler::init!(
-    "Elixir.ExRock",
+    "Elixir.ExRocket",
     [
         nif::lxcode,
         nif::latest_sequence_number,

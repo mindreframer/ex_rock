@@ -1,13 +1,13 @@
-defmodule ExRock.MixProject do
+defmodule ExRocket.MixProject do
   use Mix.Project
 
-  @version "0.1.1"
-  @source_url "https://github.com/Vonmo/ex_rock"
-  @changelog_url "https://github.com/Vonmo/ex_rockblob/develop/CHANGELOG.md"
+  @version "0.3.0"
+  @source_url "https://github.com/mindreframer/ex_rocket"
+  @changelog_url "https://github.com/mindreframer/ex_rocket/blob/main/CHANGELOG.md"
 
   def project do
     [
-      app: :ex_rock,
+      app: :ex_rocket,
       version: @version,
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
@@ -51,7 +51,7 @@ defmodule ExRock.MixProject do
 
   defp package do
     [
-      maintainers: ["Maxim Molchanov <m.molchanov@vonmo.com>"],
+      maintainers: ["Maxim Molchanov <m.molchanov@vonmo.com>", "Roman Heinrich"],
       licenses: ["Apache-2.0"],
       links: %{"GitHub" => @source_url, "Changelog" => @changelog_url},
       files: [
@@ -71,7 +71,7 @@ defmodule ExRock.MixProject do
 
   defp docs do
     [
-      main: "ex_rock",
+      main: "ex_rocket",
       extras: ["README.md"]
     ]
   end

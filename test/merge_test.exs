@@ -1,71 +1,71 @@
-defmodule ExRock.MergeTest do
-  use ExRock.Case, async: false
+defmodule ExRocket.MergeTest do
+  use ExRocket.Case, async: false
 
   describe "counter merge operator" do
     test "counter merge basic functionality", context do
       path = context.db_path
 
       # Open database with counter merge operator
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "counter_merge_operator"
       })
 
       # Test merging with no existing value
-      assert :ok == ExRock.merge(db, "counter", "1")
-      assert {:ok, "1"} == ExRock.get(db, "counter")
+      assert :ok == ExRocket.merge(db, "counter", "1")
+      assert {:ok, "1"} == ExRocket.get(db, "counter")
 
       # Test merging with existing value
-      assert :ok == ExRock.merge(db, "counter", "2")
-      assert {:ok, "3"} == ExRock.get(db, "counter")
+      assert :ok == ExRocket.merge(db, "counter", "2")
+      assert {:ok, "3"} == ExRocket.get(db, "counter")
 
       # Test merging with negative value
-      assert :ok == ExRock.merge(db, "counter", "-1")
-      assert {:ok, "2"} == ExRock.get(db, "counter")
+      assert :ok == ExRocket.merge(db, "counter", "-1")
+      assert {:ok, "2"} == ExRocket.get(db, "counter")
 
       # Test multiple merges
-      assert :ok == ExRock.merge(db, "counter", "5")
-      assert :ok == ExRock.merge(db, "counter", "3")
-      assert {:ok, "10"} == ExRock.get(db, "counter")
+      assert :ok == ExRocket.merge(db, "counter", "5")
+      assert :ok == ExRocket.merge(db, "counter", "3")
+      assert {:ok, "10"} == ExRocket.get(db, "counter")
 
       # Test with new key
-      assert :ok == ExRock.merge(db, "new_counter", "42")
-      assert {:ok, "42"} == ExRock.get(db, "new_counter")
+      assert :ok == ExRocket.merge(db, "new_counter", "42")
+      assert {:ok, "42"} == ExRocket.get(db, "new_counter")
     end
 
     test "counter merge with put operation", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "counter_merge_operator"
       })
 
       # Put initial value
-      assert :ok == ExRock.put(db, "counter", "10")
-      assert {:ok, "10"} == ExRock.get(db, "counter")
+      assert :ok == ExRocket.put(db, "counter", "10")
+      assert {:ok, "10"} == ExRocket.get(db, "counter")
 
       # Merge with existing put value
-      assert :ok == ExRock.merge(db, "counter", "5")
-      assert {:ok, "15"} == ExRock.get(db, "counter")
+      assert :ok == ExRocket.merge(db, "counter", "5")
+      assert {:ok, "15"} == ExRocket.get(db, "counter")
 
       # Put over merged value
-      assert :ok == ExRock.put(db, "counter", "0")
-      assert {:ok, "0"} == ExRock.get(db, "counter")
+      assert :ok == ExRocket.put(db, "counter", "0")
+      assert {:ok, "0"} == ExRocket.get(db, "counter")
 
       # Merge again
-      assert :ok == ExRock.merge(db, "counter", "7")
-      assert {:ok, "7"} == ExRock.get(db, "counter")
+      assert :ok == ExRocket.merge(db, "counter", "7")
+      assert {:ok, "7"} == ExRocket.get(db, "counter")
     end
 
     test "counter merge error handling", context do
       path = context.db_path
 
       # Test without merge operator - should fail
-      {:ok, db} = ExRock.open(path, %{create_if_missing: true})
+      {:ok, db} = ExRocket.open(path, %{create_if_missing: true})
 
       # This should return an error since no merge operator is configured
-      case ExRock.merge(db, "counter", "1") do
+      case ExRocket.merge(db, "counter", "1") do
         {:error, _reason} -> :ok
         :ok -> flunk("Expected merge to fail without merge operator")
       end
@@ -76,421 +76,421 @@ defmodule ExRock.MergeTest do
     test "basic functionality (simple string merge)", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "erlang_merge_operator"
       })
 
       # For now, the erlang merge operator falls back to counter behavior for simple strings
-      assert :ok == ExRock.merge(db, "simple_counter", "5")
-      {:ok, result1} = ExRock.get(db, "simple_counter")
+      assert :ok == ExRocket.merge(db, "simple_counter", "5")
+      {:ok, result1} = ExRocket.get(db, "simple_counter")
       assert "5" == result1
 
       # Test merging with existing value
-      assert :ok == ExRock.merge(db, "simple_counter", "3")
-      {:ok, result2} = ExRock.get(db, "simple_counter")
+      assert :ok == ExRocket.merge(db, "simple_counter", "3")
+      {:ok, result2} = ExRocket.get(db, "simple_counter")
       assert "8" == result2
     end
 
     test "int_add operations", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "erlang_merge_operator"
       })
 
       # Test merging with no existing value
       operand1 = :erlang.term_to_binary({:int_add, 5})
-      assert :ok == ExRock.merge(db, "int_counter", operand1)
-      {:ok, result1} = ExRock.get(db, "int_counter")
+      assert :ok == ExRocket.merge(db, "int_counter", operand1)
+      {:ok, result1} = ExRocket.get(db, "int_counter")
       assert 5 == :erlang.binary_to_term(result1)
 
       # Test merging with existing value
       operand2 = :erlang.term_to_binary({:int_add, 3})
-      assert :ok == ExRock.merge(db, "int_counter", operand2)
-      {:ok, result2} = ExRock.get(db, "int_counter")
+      assert :ok == ExRocket.merge(db, "int_counter", operand2)
+      {:ok, result2} = ExRocket.get(db, "int_counter")
       assert 8 == :erlang.binary_to_term(result2)
 
       # Test negative values
       operand3 = :erlang.term_to_binary({:int_add, -2})
-      assert :ok == ExRock.merge(db, "int_counter", operand3)
-      {:ok, result3} = ExRock.get(db, "int_counter")
+      assert :ok == ExRocket.merge(db, "int_counter", operand3)
+      {:ok, result3} = ExRocket.get(db, "int_counter")
       assert 6 == :erlang.binary_to_term(result3)
     end
 
     test "list_append operations", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "erlang_merge_operator"
       })
 
       # Start with initial list
       initial_list = :erlang.term_to_binary([:a, :b])
-      assert :ok == ExRock.put(db, "my_list", initial_list)
+      assert :ok == ExRocket.put(db, "my_list", initial_list)
 
       # Append to existing list
       operand1 = :erlang.term_to_binary({:list_append, [:c, :d]})
-      assert :ok == ExRock.merge(db, "my_list", operand1)
-      {:ok, result1} = ExRock.get(db, "my_list")
+      assert :ok == ExRocket.merge(db, "my_list", operand1)
+      {:ok, result1} = ExRocket.get(db, "my_list")
       assert [:a, :b, :c, :d] == :erlang.binary_to_term(result1)
 
       # Append more elements
       operand2 = :erlang.term_to_binary({:list_append, [:e]})
-      assert :ok == ExRock.merge(db, "my_list", operand2)
-      {:ok, result2} = ExRock.get(db, "my_list")
+      assert :ok == ExRocket.merge(db, "my_list", operand2)
+      {:ok, result2} = ExRocket.get(db, "my_list")
       assert [:a, :b, :c, :d, :e] == :erlang.binary_to_term(result2)
     end
 
     test "list_prepend operations", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "erlang_merge_operator"
       })
 
       # Start with initial list
       initial_list = :erlang.term_to_binary([:c, :d])
-      assert :ok == ExRock.put(db, "my_list", initial_list)
+      assert :ok == ExRocket.put(db, "my_list", initial_list)
 
       # Prepend elements to existing list
       operand1 = :erlang.term_to_binary({:list_prepend, [:a, :b]})
-      assert :ok == ExRock.merge(db, "my_list", operand1)
-      {:ok, result1} = ExRock.get(db, "my_list")
+      assert :ok == ExRocket.merge(db, "my_list", operand1)
+      {:ok, result1} = ExRocket.get(db, "my_list")
       assert [:a, :b, :c, :d] == :erlang.binary_to_term(result1)
 
       # Prepend more elements
       operand2 = :erlang.term_to_binary({:list_prepend, [:x, :y]})
-      assert :ok == ExRock.merge(db, "my_list", operand2)
-      {:ok, result2} = ExRock.get(db, "my_list")
+      assert :ok == ExRocket.merge(db, "my_list", operand2)
+      {:ok, result2} = ExRocket.get(db, "my_list")
       assert [:x, :y, :a, :b, :c, :d] == :erlang.binary_to_term(result2)
 
       # Test prepend with empty list
       operand3 = :erlang.term_to_binary({:list_prepend, []})
-      assert :ok == ExRock.merge(db, "my_list", operand3)
-      {:ok, result3} = ExRock.get(db, "my_list")
+      assert :ok == ExRocket.merge(db, "my_list", operand3)
+      {:ok, result3} = ExRocket.get(db, "my_list")
       assert [:x, :y, :a, :b, :c, :d] == :erlang.binary_to_term(result3)
 
       # Test prepend to non-existent key (should create new list)
       operand4 = :erlang.term_to_binary({:list_prepend, [:new, :list]})
-      assert :ok == ExRock.merge(db, "new_list", operand4)
-      {:ok, result4} = ExRock.get(db, "new_list")
+      assert :ok == ExRocket.merge(db, "new_list", operand4)
+      {:ok, result4} = ExRocket.get(db, "new_list")
       assert [:new, :list] == :erlang.binary_to_term(result4)
     end
 
     test "combined list_append and list_prepend operations", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "erlang_merge_operator"
       })
 
       # Start with initial list
       initial_list = :erlang.term_to_binary([:middle])
-      assert :ok == ExRock.put(db, "my_list", initial_list)
+      assert :ok == ExRocket.put(db, "my_list", initial_list)
 
       # Prepend elements
       operand1 = :erlang.term_to_binary({:list_prepend, [:start]})
-      assert :ok == ExRock.merge(db, "my_list", operand1)
+      assert :ok == ExRocket.merge(db, "my_list", operand1)
 
       # Append elements
       operand2 = :erlang.term_to_binary({:list_append, [:end]})
-      assert :ok == ExRock.merge(db, "my_list", operand2)
+      assert :ok == ExRocket.merge(db, "my_list", operand2)
 
       # Verify final result
-      {:ok, result} = ExRock.get(db, "my_list")
+      {:ok, result} = ExRocket.get(db, "my_list")
       assert [:start, :middle, :end] == :erlang.binary_to_term(result)
 
       # Test multiple prepends and appends
       operand3 = :erlang.term_to_binary({:list_prepend, [:very, :beginning]})
-      assert :ok == ExRock.merge(db, "my_list", operand3)
+      assert :ok == ExRocket.merge(db, "my_list", operand3)
 
       operand4 = :erlang.term_to_binary({:list_append, [:very, :end]})
-      assert :ok == ExRock.merge(db, "my_list", operand4)
+      assert :ok == ExRocket.merge(db, "my_list", operand4)
 
-      {:ok, final_result} = ExRock.get(db, "my_list")
+      {:ok, final_result} = ExRocket.get(db, "my_list")
       assert [:very, :beginning, :start, :middle, :end, :very, :end] == :erlang.binary_to_term(final_result)
     end
 
     test "binary_append operations", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "erlang_merge_operator"
       })
 
       # Start with initial binary
       initial_binary = :erlang.term_to_binary("hello")
-      assert :ok == ExRock.put(db, "my_binary", initial_binary)
+      assert :ok == ExRocket.put(db, "my_binary", initial_binary)
 
       # Append to existing binary
       operand1 = :erlang.term_to_binary({:binary_append, " world"})
-      assert :ok == ExRock.merge(db, "my_binary", operand1)
-      {:ok, result1} = ExRock.get(db, "my_binary")
+      assert :ok == ExRocket.merge(db, "my_binary", operand1)
+      {:ok, result1} = ExRocket.get(db, "my_binary")
       assert "hello world" == :erlang.binary_to_term(result1)
 
       # Append more text
       operand2 = :erlang.term_to_binary({:binary_append, "!"})
-      assert :ok == ExRock.merge(db, "my_binary", operand2)
-      {:ok, result2} = ExRock.get(db, "my_binary")
+      assert :ok == ExRocket.merge(db, "my_binary", operand2)
+      {:ok, result2} = ExRocket.get(db, "my_binary")
       assert "hello world!" == :erlang.binary_to_term(result2)
     end
 
     test "list_subtract operations", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "erlang_merge_operator"
       })
 
       # Start with initial list
       initial_list = :erlang.term_to_binary([:a, :b, :c, :d, :e])
-      assert :ok == ExRock.put(db, "my_list", initial_list)
+      assert :ok == ExRocket.put(db, "my_list", initial_list)
 
       # Subtract elements
       operand1 = :erlang.term_to_binary({:list_subtract, [:b, :d]})
-      assert :ok == ExRock.merge(db, "my_list", operand1)
-      {:ok, result1} = ExRock.get(db, "my_list")
+      assert :ok == ExRocket.merge(db, "my_list", operand1)
+      {:ok, result1} = ExRocket.get(db, "my_list")
       assert [:a, :c, :e] == :erlang.binary_to_term(result1)
 
       # Subtract more elements
       operand2 = :erlang.term_to_binary({:list_subtract, [:a, :e]})
-      assert :ok == ExRock.merge(db, "my_list", operand2)
-      {:ok, result2} = ExRock.get(db, "my_list")
+      assert :ok == ExRocket.merge(db, "my_list", operand2)
+      {:ok, result2} = ExRocket.get(db, "my_list")
       assert [:c] == :erlang.binary_to_term(result2)
     end
 
     test "list_set operations", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "erlang_merge_operator"
       })
 
       # Start with initial list
       initial_list = :erlang.term_to_binary([:a, :b, :c])
-      assert :ok == ExRock.put(db, "my_list", initial_list)
+      assert :ok == ExRocket.put(db, "my_list", initial_list)
 
       # Set element at position 1
       operand1 = :erlang.term_to_binary({:list_set, 1, :x})
-      assert :ok == ExRock.merge(db, "my_list", operand1)
-      {:ok, result1} = ExRock.get(db, "my_list")
+      assert :ok == ExRocket.merge(db, "my_list", operand1)
+      {:ok, result1} = ExRocket.get(db, "my_list")
       assert [:a, :x, :c] == :erlang.binary_to_term(result1)
 
       # Set element at position 0
       operand2 = :erlang.term_to_binary({:list_set, 0, :y})
-      assert :ok == ExRock.merge(db, "my_list", operand2)
-      {:ok, result2} = ExRock.get(db, "my_list")
+      assert :ok == ExRocket.merge(db, "my_list", operand2)
+      {:ok, result2} = ExRocket.get(db, "my_list")
       assert [:y, :x, :c] == :erlang.binary_to_term(result2)
     end
 
     test "list_delete single position operations", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "erlang_merge_operator"
       })
 
       # Start with initial list
       initial_list = :erlang.term_to_binary([:a, :b, :c, :d, :e])
-      assert :ok == ExRock.put(db, "my_list", initial_list)
+      assert :ok == ExRocket.put(db, "my_list", initial_list)
 
       # Delete element at position 2
       operand1 = :erlang.term_to_binary({:list_delete, 2})
-      assert :ok == ExRock.merge(db, "my_list", operand1)
-      {:ok, result1} = ExRock.get(db, "my_list")
+      assert :ok == ExRocket.merge(db, "my_list", operand1)
+      {:ok, result1} = ExRocket.get(db, "my_list")
       assert [:a, :b, :d, :e] == :erlang.binary_to_term(result1)
 
       # Delete element at position 0
       operand2 = :erlang.term_to_binary({:list_delete, 0})
-      assert :ok == ExRock.merge(db, "my_list", operand2)
-      {:ok, result2} = ExRock.get(db, "my_list")
+      assert :ok == ExRocket.merge(db, "my_list", operand2)
+      {:ok, result2} = ExRocket.get(db, "my_list")
       assert [:b, :d, :e] == :erlang.binary_to_term(result2)
     end
 
     test "list_delete range operations", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "erlang_merge_operator"
       })
 
       # Start with initial list
       initial_list = :erlang.term_to_binary([:a, :b, :c, :d, :e, :f])
-      assert :ok == ExRock.put(db, "my_list", initial_list)
+      assert :ok == ExRocket.put(db, "my_list", initial_list)
 
       # Delete range from position 1 to 4 (elements :b, :c, :d)
       operand1 = :erlang.term_to_binary({:list_delete, 1, 4})
-      assert :ok == ExRock.merge(db, "my_list", operand1)
-      {:ok, result1} = ExRock.get(db, "my_list")
+      assert :ok == ExRocket.merge(db, "my_list", operand1)
+      {:ok, result1} = ExRocket.get(db, "my_list")
       assert [:a, :e, :f] == :erlang.binary_to_term(result1)
 
       # Delete range from position 0 to 2 (elements :a, :e)
       operand2 = :erlang.term_to_binary({:list_delete, 0, 2})
-      assert :ok == ExRock.merge(db, "my_list", operand2)
-      {:ok, result2} = ExRock.get(db, "my_list")
+      assert :ok == ExRocket.merge(db, "my_list", operand2)
+      {:ok, result2} = ExRocket.get(db, "my_list")
       assert [:f] == :erlang.binary_to_term(result2)
     end
 
     test "list_insert operations", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "erlang_merge_operator"
       })
 
       # Start with initial list
       initial_list = :erlang.term_to_binary([:a, :c, :e])
-      assert :ok == ExRock.put(db, "my_list", initial_list)
+      assert :ok == ExRocket.put(db, "my_list", initial_list)
 
       # Insert elements at position 1
       operand1 = :erlang.term_to_binary({:list_insert, 1, [:b, :x]})
-      assert :ok == ExRock.merge(db, "my_list", operand1)
-      {:ok, result1} = ExRock.get(db, "my_list")
+      assert :ok == ExRocket.merge(db, "my_list", operand1)
+      {:ok, result1} = ExRocket.get(db, "my_list")
       assert [:a, :b, :x, :c, :e] == :erlang.binary_to_term(result1)
 
       # Insert elements at position 0 (beginning)
       operand2 = :erlang.term_to_binary({:list_insert, 0, [:start]})
-      assert :ok == ExRock.merge(db, "my_list", operand2)
-      {:ok, result2} = ExRock.get(db, "my_list")
+      assert :ok == ExRocket.merge(db, "my_list", operand2)
+      {:ok, result2} = ExRocket.get(db, "my_list")
       assert [:start, :a, :b, :x, :c, :e] == :erlang.binary_to_term(result2)
 
       # Insert elements at end
       list_len = length(:erlang.binary_to_term(result2))
       operand3 = :erlang.term_to_binary({:list_insert, list_len, [:end]})
-      assert :ok == ExRock.merge(db, "my_list", operand3)
-      {:ok, result3} = ExRock.get(db, "my_list")
+      assert :ok == ExRocket.merge(db, "my_list", operand3)
+      {:ok, result3} = ExRocket.get(db, "my_list")
       assert [:start, :a, :b, :x, :c, :e, :end] == :erlang.binary_to_term(result3)
     end
 
     test "binary_erase operations", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "erlang_merge_operator"
       })
 
       # Start with initial binary
       initial_binary = :erlang.term_to_binary("hello world!")
-      assert :ok == ExRock.put(db, "my_binary", initial_binary)
+      assert :ok == ExRocket.put(db, "my_binary", initial_binary)
 
       # Erase 6 bytes starting at position 5 (remove " world")
       operand1 = :erlang.term_to_binary({:binary_erase, 5, 6})
-      assert :ok == ExRock.merge(db, "my_binary", operand1)
-      {:ok, result1} = ExRock.get(db, "my_binary")
+      assert :ok == ExRocket.merge(db, "my_binary", operand1)
+      {:ok, result1} = ExRocket.get(db, "my_binary")
       assert "hello!" == :erlang.binary_to_term(result1)
 
       # Erase 1 byte at position 5 (remove "!")
       operand2 = :erlang.term_to_binary({:binary_erase, 5, 1})
-      assert :ok == ExRock.merge(db, "my_binary", operand2)
-      {:ok, result2} = ExRock.get(db, "my_binary")
+      assert :ok == ExRocket.merge(db, "my_binary", operand2)
+      {:ok, result2} = ExRocket.get(db, "my_binary")
       assert "hello" == :erlang.binary_to_term(result2)
     end
 
     test "binary_insert operations", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "erlang_merge_operator"
       })
 
       # Start with initial binary
       initial_binary = :erlang.term_to_binary("hello")
-      assert :ok == ExRock.put(db, "my_binary", initial_binary)
+      assert :ok == ExRocket.put(db, "my_binary", initial_binary)
 
       # Insert " world" at position 5 (end)
       operand1 = :erlang.term_to_binary({:binary_insert, 5, " world"})
-      assert :ok == ExRock.merge(db, "my_binary", operand1)
-      {:ok, result1} = ExRock.get(db, "my_binary")
+      assert :ok == ExRocket.merge(db, "my_binary", operand1)
+      {:ok, result1} = ExRocket.get(db, "my_binary")
       assert "hello world" == :erlang.binary_to_term(result1)
 
       # Insert "beautiful " at position 6 (after "hello ")
       operand2 = :erlang.term_to_binary({:binary_insert, 6, "beautiful "})
-      assert :ok == ExRock.merge(db, "my_binary", operand2)
-      {:ok, result2} = ExRock.get(db, "my_binary")
+      assert :ok == ExRocket.merge(db, "my_binary", operand2)
+      {:ok, result2} = ExRocket.get(db, "my_binary")
       assert "hello beautiful world" == :erlang.binary_to_term(result2)
 
       # Insert "!" at the end
       current_len = byte_size(:erlang.binary_to_term(result2))
       operand3 = :erlang.term_to_binary({:binary_insert, current_len, "!"})
-      assert :ok == ExRock.merge(db, "my_binary", operand3)
-      {:ok, result3} = ExRock.get(db, "my_binary")
+      assert :ok == ExRocket.merge(db, "my_binary", operand3)
+      {:ok, result3} = ExRocket.get(db, "my_binary")
       assert "hello beautiful world!" == :erlang.binary_to_term(result3)
     end
 
     test "binary_replace operations", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "erlang_merge_operator"
       })
 
       # Start with initial binary
       initial_binary = :erlang.term_to_binary("hello world!")
-      assert :ok == ExRock.put(db, "my_binary", initial_binary)
+      assert :ok == ExRocket.put(db, "my_binary", initial_binary)
 
       # Replace 5 bytes starting at position 6 (replace "world" with "there")
       operand1 = :erlang.term_to_binary({:binary_replace, 6, 5, "there"})
-      assert :ok == ExRock.merge(db, "my_binary", operand1)
-      {:ok, result1} = ExRock.get(db, "my_binary")
+      assert :ok == ExRocket.merge(db, "my_binary", operand1)
+      {:ok, result1} = ExRocket.get(db, "my_binary")
       assert "hello there!" == :erlang.binary_to_term(result1)
 
       # Replace 1 byte at position 11 (replace "!" with "?")
       operand2 = :erlang.term_to_binary({:binary_replace, 11, 1, "?"})
-      assert :ok == ExRock.merge(db, "my_binary", operand2)
-      {:ok, result2} = ExRock.get(db, "my_binary")
+      assert :ok == ExRocket.merge(db, "my_binary", operand2)
+      {:ok, result2} = ExRocket.get(db, "my_binary")
       assert "hello there?" == :erlang.binary_to_term(result2)
 
       # Replace with longer text
       operand3 = :erlang.term_to_binary({:binary_replace, 6, 5, "everyone"})
-      assert :ok == ExRock.merge(db, "my_binary", operand3)
-      {:ok, result3} = ExRock.get(db, "my_binary")
+      assert :ok == ExRocket.merge(db, "my_binary", operand3)
+      {:ok, result3} = ExRocket.get(db, "my_binary")
       assert "hello everyone?" == :erlang.binary_to_term(result3)
     end
 
     test "mixed binary operations", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "erlang_merge_operator"
       })
 
       # Start with initial binary
       initial_binary = :erlang.term_to_binary("test")
-      assert :ok == ExRock.put(db, "my_binary", initial_binary)
+      assert :ok == ExRocket.put(db, "my_binary", initial_binary)
 
       # Multiple operations in sequence
       # 1. Append " string"
       operand1 = :erlang.term_to_binary({:binary_append, " string"})
-      assert :ok == ExRock.merge(db, "my_binary", operand1)
+      assert :ok == ExRocket.merge(db, "my_binary", operand1)
 
       # 2. Insert "ing " at position 4
       operand2 = :erlang.term_to_binary({:binary_insert, 4, "ing "})
-      assert :ok == ExRock.merge(db, "my_binary", operand2)
+      assert :ok == ExRocket.merge(db, "my_binary", operand2)
 
       # 3. Replace "test" with "work"
       operand3 = :erlang.term_to_binary({:binary_replace, 0, 4, "work"})
-      assert :ok == ExRock.merge(db, "my_binary", operand3)
+      assert :ok == ExRocket.merge(db, "my_binary", operand3)
 
       # 4. Erase "ing " (4 bytes at position 4)
       operand4 = :erlang.term_to_binary({:binary_erase, 4, 4})
-      assert :ok == ExRock.merge(db, "my_binary", operand4)
+      assert :ok == ExRocket.merge(db, "my_binary", operand4)
 
-      {:ok, result} = ExRock.get(db, "my_binary")
+      {:ok, result} = ExRocket.get(db, "my_binary")
       assert "work string" == :erlang.binary_to_term(result)
     end
   end
@@ -499,135 +499,135 @@ defmodule ExRock.MergeTest do
     test "basic bit setting and clearing", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "bitset_merge_operator"
       })
 
       # Set bit at position 0
-      assert :ok == ExRock.merge(db, "bitset", "+0")
-      {:ok, result1} = ExRock.get(db, "bitset")
+      assert :ok == ExRocket.merge(db, "bitset", "+0")
+      {:ok, result1} = ExRocket.get(db, "bitset")
       assert <<1>> == result1
 
       # Set bit at position 3
-      assert :ok == ExRock.merge(db, "bitset", "+3")
-      {:ok, result2} = ExRock.get(db, "bitset")
+      assert :ok == ExRocket.merge(db, "bitset", "+3")
+      {:ok, result2} = ExRocket.get(db, "bitset")
       assert <<9>> == result2  # 00001001 (bits 0 and 3 set)
 
       # Clear bit at position 0
-      assert :ok == ExRock.merge(db, "bitset", "-0")
-      {:ok, result3} = ExRock.get(db, "bitset")
+      assert :ok == ExRocket.merge(db, "bitset", "-0")
+      {:ok, result3} = ExRocket.get(db, "bitset")
       assert <<8>> == result3  # 00001000 (only bit 3 set)
     end
 
     test "setting bits across byte boundaries", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "bitset_merge_operator"
       })
 
       # Set bit at position 15 (second byte, bit 7)
-      assert :ok == ExRock.merge(db, "bitset", "+15")
-      {:ok, result1} = ExRock.get(db, "bitset")
+      assert :ok == ExRocket.merge(db, "bitset", "+15")
+      {:ok, result1} = ExRocket.get(db, "bitset")
       assert <<0, 128>> == result1  # Second byte: 10000000
 
       # Set bit at position 8 (second byte, bit 0)
-      assert :ok == ExRock.merge(db, "bitset", "+8")
-      {:ok, result2} = ExRock.get(db, "bitset")
+      assert :ok == ExRocket.merge(db, "bitset", "+8")
+      {:ok, result2} = ExRocket.get(db, "bitset")
       assert <<0, 129>> == result2  # Second byte: 10000001
 
       # Set bit at position 0 (first byte)
-      assert :ok == ExRock.merge(db, "bitset", "+0")
-      {:ok, result3} = ExRock.get(db, "bitset")
+      assert :ok == ExRocket.merge(db, "bitset", "+0")
+      {:ok, result3} = ExRocket.get(db, "bitset")
       assert <<1, 129>> == result3
     end
 
     test "clearing entire bitset", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "bitset_merge_operator"
       })
 
       # Set multiple bits
-      assert :ok == ExRock.merge(db, "bitset", "+0")
-      assert :ok == ExRock.merge(db, "bitset", "+5")
-      assert :ok == ExRock.merge(db, "bitset", "+12")
+      assert :ok == ExRocket.merge(db, "bitset", "+0")
+      assert :ok == ExRocket.merge(db, "bitset", "+5")
+      assert :ok == ExRocket.merge(db, "bitset", "+12")
 
-      {:ok, result1} = ExRock.get(db, "bitset")
+      {:ok, result1} = ExRocket.get(db, "bitset")
       assert byte_size(result1) > 0
 
       # Clear entire bitset
-      assert :ok == ExRock.merge(db, "bitset", "")
-      {:ok, result2} = ExRock.get(db, "bitset")
+      assert :ok == ExRocket.merge(db, "bitset", "")
+      {:ok, result2} = ExRocket.get(db, "bitset")
       assert <<>> == result2
     end
 
     test "multiple operations in sequence", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "bitset_merge_operator"
       })
 
       # Set bits 1, 3, 5
-      assert :ok == ExRock.merge(db, "bitset", "+1")
-      assert :ok == ExRock.merge(db, "bitset", "+3")
-      assert :ok == ExRock.merge(db, "bitset", "+5")
+      assert :ok == ExRocket.merge(db, "bitset", "+1")
+      assert :ok == ExRocket.merge(db, "bitset", "+3")
+      assert :ok == ExRocket.merge(db, "bitset", "+5")
 
-      {:ok, result1} = ExRock.get(db, "bitset")
+      {:ok, result1} = ExRocket.get(db, "bitset")
       assert <<42>> == result1  # 00101010 (bits 1, 3, 5 set)
 
       # Clear bit 3
-      assert :ok == ExRock.merge(db, "bitset", "-3")
-      {:ok, result2} = ExRock.get(db, "bitset")
+      assert :ok == ExRocket.merge(db, "bitset", "-3")
+      {:ok, result2} = ExRocket.get(db, "bitset")
       assert <<34>> == result2  # 00100010 (bits 1, 5 set)
 
       # Set bit 7
-      assert :ok == ExRock.merge(db, "bitset", "+7")
-      {:ok, result3} = ExRock.get(db, "bitset")
+      assert :ok == ExRocket.merge(db, "bitset", "+7")
+      {:ok, result3} = ExRocket.get(db, "bitset")
       assert <<162>> == result3  # 10100010 (bits 1, 5, 7 set)
     end
 
     test "clearing non-existent bits", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "bitset_merge_operator"
       })
 
       # Set bit 3
-      assert :ok == ExRock.merge(db, "bitset", "+3")
-      {:ok, result1} = ExRock.get(db, "bitset")
+      assert :ok == ExRocket.merge(db, "bitset", "+3")
+      {:ok, result1} = ExRocket.get(db, "bitset")
       assert <<8>> == result1
 
       # Try to clear bit 10 (beyond current bitset size)
-      assert :ok == ExRock.merge(db, "bitset", "-10")
-      {:ok, result2} = ExRock.get(db, "bitset")
+      assert :ok == ExRocket.merge(db, "bitset", "-10")
+      {:ok, result2} = ExRocket.get(db, "bitset")
       assert <<8>> == result2  # Should remain unchanged
 
       # Clear existing bit 3
-      assert :ok == ExRock.merge(db, "bitset", "-3")
-      {:ok, result3} = ExRock.get(db, "bitset")
+      assert :ok == ExRocket.merge(db, "bitset", "-3")
+      {:ok, result3} = ExRocket.get(db, "bitset")
       assert <<0>> == result3
     end
 
     test "large bit positions", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "bitset_merge_operator"
       })
 
       # Set bit at position 100
-      assert :ok == ExRock.merge(db, "bitset", "+100")
-      {:ok, result1} = ExRock.get(db, "bitset")
+      assert :ok == ExRocket.merge(db, "bitset", "+100")
+      {:ok, result1} = ExRocket.get(db, "bitset")
 
       # Should have 13 bytes (100 / 8 = 12, + 1 for the bit at position 100 % 8 = 4)
       assert byte_size(result1) == 13
@@ -643,153 +643,153 @@ defmodule ExRock.MergeTest do
       path = context.db_path
 
       # Open database with merge operator first
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "counter_merge_operator"
       })
 
       # Create additional column family with merge operator
-      assert :ok == ExRock.create_cf(db, "counters", %{merge_operator: "counter_merge_operator"})
+      assert :ok == ExRocket.create_cf(db, "counters", %{merge_operator: "counter_merge_operator"})
 
       # Test merge in custom column family
-      assert :ok == ExRock.merge_cf(db, "counters", "cf_counter", "10")
-      assert :ok == ExRock.merge_cf(db, "counters", "cf_counter", "3")
-      {:ok, result1} = ExRock.get_cf(db, "counters", "cf_counter")
+      assert :ok == ExRocket.merge_cf(db, "counters", "cf_counter", "10")
+      assert :ok == ExRocket.merge_cf(db, "counters", "cf_counter", "3")
+      {:ok, result1} = ExRocket.get_cf(db, "counters", "cf_counter")
       assert "13" == result1
 
       # Test more merge operations
-      assert :ok == ExRock.merge_cf(db, "counters", "cf_counter", "-5")
-      {:ok, result2} = ExRock.get_cf(db, "counters", "cf_counter")
+      assert :ok == ExRocket.merge_cf(db, "counters", "cf_counter", "-5")
+      {:ok, result2} = ExRocket.get_cf(db, "counters", "cf_counter")
       assert "8" == result2
 
       # Test merge in a different key
-      assert :ok == ExRock.merge_cf(db, "counters", "another_counter", "20")
-      assert :ok == ExRock.merge_cf(db, "counters", "another_counter", "5")
-      {:ok, result3} = ExRock.get_cf(db, "counters", "another_counter")
+      assert :ok == ExRocket.merge_cf(db, "counters", "another_counter", "20")
+      assert :ok == ExRocket.merge_cf(db, "counters", "another_counter", "5")
+      {:ok, result3} = ExRocket.get_cf(db, "counters", "another_counter")
       assert "25" == result3
     end
 
     test "erlang merge operator with column families", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "erlang_merge_operator"
       })
 
       # Create additional column family with merge operator
-      assert :ok == ExRock.create_cf(db, "data", %{merge_operator: "erlang_merge_operator"})
+      assert :ok == ExRocket.create_cf(db, "data", %{merge_operator: "erlang_merge_operator"})
 
       # Test int_add operations in column family
       operand1 = :erlang.term_to_binary({:int_add, 5})
-      assert :ok == ExRock.merge_cf(db, "data", "int_counter", operand1)
+      assert :ok == ExRocket.merge_cf(db, "data", "int_counter", operand1)
 
       operand2 = :erlang.term_to_binary({:int_add, 10})
-      assert :ok == ExRock.merge_cf(db, "data", "int_counter", operand2)
+      assert :ok == ExRocket.merge_cf(db, "data", "int_counter", operand2)
 
       # Verify operations
-      {:ok, result1} = ExRock.get_cf(db, "data", "int_counter")
+      {:ok, result1} = ExRocket.get_cf(db, "data", "int_counter")
       assert 15 == :erlang.binary_to_term(result1)
 
       # Test list operations in column families
       initial_list = :erlang.term_to_binary([:b, :c])
-      assert :ok == ExRock.put_cf(db, "data", "my_list", initial_list)
+      assert :ok == ExRocket.put_cf(db, "data", "my_list", initial_list)
 
       # Test append
       operand3 = :erlang.term_to_binary({:list_append, [:d, :e]})
-      assert :ok == ExRock.merge_cf(db, "data", "my_list", operand3)
+      assert :ok == ExRocket.merge_cf(db, "data", "my_list", operand3)
 
       # Test prepend
       operand4 = :erlang.term_to_binary({:list_prepend, [:a]})
-      assert :ok == ExRock.merge_cf(db, "data", "my_list", operand4)
+      assert :ok == ExRocket.merge_cf(db, "data", "my_list", operand4)
 
-      {:ok, result3} = ExRock.get_cf(db, "data", "my_list")
+      {:ok, result3} = ExRocket.get_cf(db, "data", "my_list")
       assert [:a, :b, :c, :d, :e] == :erlang.binary_to_term(result3)
     end
 
     test "bitset merge operator with column families", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "bitset_merge_operator"
       })
 
       # Create additional column family with merge operator
-      assert :ok == ExRock.create_cf(db, "flags", %{merge_operator: "bitset_merge_operator"})
+      assert :ok == ExRocket.create_cf(db, "flags", %{merge_operator: "bitset_merge_operator"})
 
       # Test bitset operations in main database
-      assert :ok == ExRock.merge(db, "main_flags", "+0")
-      assert :ok == ExRock.merge(db, "main_flags", "+3")
+      assert :ok == ExRocket.merge(db, "main_flags", "+0")
+      assert :ok == ExRocket.merge(db, "main_flags", "+3")
 
-      {:ok, result1} = ExRock.get(db, "main_flags")
+      {:ok, result1} = ExRocket.get(db, "main_flags")
       assert <<9>> == result1  # 00001001 (bits 0 and 3 set)
 
       # Test bitset operations in custom column family
-      assert :ok == ExRock.merge_cf(db, "flags", "user_flags", "+1")
-      assert :ok == ExRock.merge_cf(db, "flags", "user_flags", "+5")
-      assert :ok == ExRock.merge_cf(db, "flags", "user_flags", "+7")
+      assert :ok == ExRocket.merge_cf(db, "flags", "user_flags", "+1")
+      assert :ok == ExRocket.merge_cf(db, "flags", "user_flags", "+5")
+      assert :ok == ExRocket.merge_cf(db, "flags", "user_flags", "+7")
 
-      {:ok, result2} = ExRock.get_cf(db, "flags", "user_flags")
+      {:ok, result2} = ExRocket.get_cf(db, "flags", "user_flags")
       assert <<162>> == result2  # 10100010 (bits 1, 5, 7 set)
 
       # Test clearing in one location doesn't affect the other
-      assert :ok == ExRock.merge_cf(db, "flags", "user_flags", "")
+      assert :ok == ExRocket.merge_cf(db, "flags", "user_flags", "")
 
-      {:ok, result3} = ExRock.get(db, "main_flags")
+      {:ok, result3} = ExRocket.get(db, "main_flags")
       assert <<9>> == result3  # Should remain unchanged
 
-      {:ok, result4} = ExRock.get_cf(db, "flags", "user_flags")
+      {:ok, result4} = ExRocket.get_cf(db, "flags", "user_flags")
       assert <<>> == result4  # Should be cleared
     end
 
     test "mixed merge operations across column families", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "erlang_merge_operator"
       })
 
       # Create column families with appropriate merge operators
-      assert :ok == ExRock.create_cf(db, "counters", %{merge_operator: "counter_merge_operator"})
-      assert :ok == ExRock.create_cf(db, "data", %{merge_operator: "erlang_merge_operator"})
+      assert :ok == ExRocket.create_cf(db, "counters", %{merge_operator: "counter_merge_operator"})
+      assert :ok == ExRocket.create_cf(db, "data", %{merge_operator: "erlang_merge_operator"})
 
       # Counter operations in counters CF (fallback behavior)
-      assert :ok == ExRock.merge_cf(db, "counters", "total", "100")
-      assert :ok == ExRock.merge_cf(db, "counters", "total", "50")
+      assert :ok == ExRocket.merge_cf(db, "counters", "total", "100")
+      assert :ok == ExRocket.merge_cf(db, "counters", "total", "50")
 
       # ETF operations in data CF
       operand1 = :erlang.term_to_binary({:int_add, 25})
-      assert :ok == ExRock.merge_cf(db, "data", "etf_counter", operand1)
+      assert :ok == ExRocket.merge_cf(db, "data", "etf_counter", operand1)
 
       list_data = :erlang.term_to_binary([:item1])
-      assert :ok == ExRock.put_cf(db, "data", "items", list_data)
+      assert :ok == ExRocket.put_cf(db, "data", "items", list_data)
 
       operand2 = :erlang.term_to_binary({:list_append, [:item2, :item3]})
-      assert :ok == ExRock.merge_cf(db, "data", "items", operand2)
+      assert :ok == ExRocket.merge_cf(db, "data", "items", operand2)
 
       # Verify all operations worked independently
-      {:ok, counter_result} = ExRock.get_cf(db, "counters", "total")
+      {:ok, counter_result} = ExRocket.get_cf(db, "counters", "total")
       assert "150" == counter_result
 
-      {:ok, etf_result} = ExRock.get_cf(db, "data", "etf_counter")
+      {:ok, etf_result} = ExRocket.get_cf(db, "data", "etf_counter")
       assert 25 == :erlang.binary_to_term(etf_result)
 
-      {:ok, list_result} = ExRock.get_cf(db, "data", "items")
+      {:ok, list_result} = ExRocket.get_cf(db, "data", "items")
       assert [:item1, :item2, :item3] == :erlang.binary_to_term(list_result)
     end
 
     test "error handling for non-existent column families", context do
       path = context.db_path
 
-      {:ok, db} = ExRock.open(path, %{
+      {:ok, db} = ExRocket.open(path, %{
         create_if_missing: true,
         merge_operator: "counter_merge_operator"
       })
 
       # Attempt to merge in non-existent column family should fail
-      case ExRock.merge_cf(db, "non_existent", "key", "5") do
+      case ExRocket.merge_cf(db, "non_existent", "key", "5") do
         {:error, _reason} -> :ok
         :ok -> flunk("Expected merge_cf to fail for non-existent column family")
       end

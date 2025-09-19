@@ -35,4 +35,4 @@ test: __ensure_started
 	@make run command='mix test'
 
 checksum:
-	@make run command='mix rustler_precompiled.download ExRock --all'
+	@make run command='mix rustler_precompiled.download ExRocket --all'

@@ -1,23 +1,23 @@
-defmodule ExRock.Performance.Test do
-  use ExRock.Case, async: false
+defmodule ExRocket.Performance.Test do
+  use ExRocket.Case, async: false
 
   describe "performance checks" do
     test "basic check", context do
-      {:ok, db} = ExRock.open(context.db_path)
+      {:ok, db} = ExRocket.open(context.db_path)
 
       w =
         :perftest.comprehensive(1000, fn ->
           i = UUID.uuid4()
-          :ok = ExRock.put(db, i, i)
+          :ok = ExRocket.put(db, i, i)
         end)
 
       assert w |> Enum.all?(&(&1 >= 5000))
 
-      :ok = ExRock.put(db, "k0", "v0")
+      :ok = ExRocket.put(db, "k0", "v0")
 
       r =
         :perftest.comprehensive(1000, fn ->
-          {:ok, "v0"} = ExRock.get(db, "k0")
+          {:ok, "v0"} = ExRocket.get(db, "k0")
         end)
 
       assert r |> Enum.all?(&(&1 >= 5000))

@@ -1,10 +1,10 @@
-defmodule ExRockTest do
-  use ExRock.Case, async: false
-  doctest ExRock
+defmodule ExRocketTest do
+  use ExRocket.Case, async: false
+  doctest ExRocket
 
   describe "common" do
     test "check lxcode/0 returns" do
-      assert ExRock.lxcode() == {:ok, :vsn1}
+      assert ExRocket.lxcode() == {:ok, :vsn1}
     end
   end
 

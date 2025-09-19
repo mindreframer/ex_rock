@@ -1,3 +1,9 @@
+# 0.3.1
+- bump rust-rocksdb to 0.24
+- bump required rust to 1.85
+- added caching to CI
+
+
 # 0.3.0
 
 - Added comprehensive RocksDB merge operator support

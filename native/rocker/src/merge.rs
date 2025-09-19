@@ -116,6 +116,21 @@ fn process_eetf_merge_operation(existing_value: Option<EetfTerm>, operand: EetfT
                             return Some(EetfTerm::List(existing_list));
                         }
                     }
+                    "list_prepend" => {
+                        // Handle list prepend (add elements to the beginning)
+                        let mut existing_list = match &existing_value {
+                            Some(EetfTerm::List(list)) => list.clone(),
+                            _ => eetf::List { elements: Vec::new() },
+                        };
+
+                        if let EetfTerm::List(prepend_list) = &tuple.elements[1] {
+                            // Insert elements at the beginning in reverse order to maintain order
+                            for (i, elem) in prepend_list.elements.iter().enumerate() {
+                                existing_list.elements.insert(i, elem.clone());
+                            }
+                            return Some(EetfTerm::List(existing_list));
+                        }
+                    }
                     "list_subtract" => {
                         // Handle list subtract (remove elements)
                         let mut existing_list = match &existing_value {

@@ -144,6 +144,78 @@ defmodule ExRock.MergeTest do
       assert [:a, :b, :c, :d, :e] == :erlang.binary_to_term(result2)
     end
 
+    test "list_prepend operations", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "erlang_merge_operator"
+      })
+
+      # Start with initial list
+      initial_list = :erlang.term_to_binary([:c, :d])
+      assert :ok == ExRock.put(db, "my_list", initial_list)
+
+      # Prepend elements to existing list
+      operand1 = :erlang.term_to_binary({:list_prepend, [:a, :b]})
+      assert :ok == ExRock.merge(db, "my_list", operand1)
+      {:ok, result1} = ExRock.get(db, "my_list")
+      assert [:a, :b, :c, :d] == :erlang.binary_to_term(result1)
+
+      # Prepend more elements
+      operand2 = :erlang.term_to_binary({:list_prepend, [:x, :y]})
+      assert :ok == ExRock.merge(db, "my_list", operand2)
+      {:ok, result2} = ExRock.get(db, "my_list")
+      assert [:x, :y, :a, :b, :c, :d] == :erlang.binary_to_term(result2)
+
+      # Test prepend with empty list
+      operand3 = :erlang.term_to_binary({:list_prepend, []})
+      assert :ok == ExRock.merge(db, "my_list", operand3)
+      {:ok, result3} = ExRock.get(db, "my_list")
+      assert [:x, :y, :a, :b, :c, :d] == :erlang.binary_to_term(result3)
+
+      # Test prepend to non-existent key (should create new list)
+      operand4 = :erlang.term_to_binary({:list_prepend, [:new, :list]})
+      assert :ok == ExRock.merge(db, "new_list", operand4)
+      {:ok, result4} = ExRock.get(db, "new_list")
+      assert [:new, :list] == :erlang.binary_to_term(result4)
+    end
+
+    test "combined list_append and list_prepend operations", context do
+      path = context.db_path
+
+      {:ok, db} = ExRock.open(path, %{
+        create_if_missing: true,
+        merge_operator: "erlang_merge_operator"
+      })
+
+      # Start with initial list
+      initial_list = :erlang.term_to_binary([:middle])
+      assert :ok == ExRock.put(db, "my_list", initial_list)
+
+      # Prepend elements
+      operand1 = :erlang.term_to_binary({:list_prepend, [:start]})
+      assert :ok == ExRock.merge(db, "my_list", operand1)
+
+      # Append elements
+      operand2 = :erlang.term_to_binary({:list_append, [:end]})
+      assert :ok == ExRock.merge(db, "my_list", operand2)
+
+      # Verify final result
+      {:ok, result} = ExRock.get(db, "my_list")
+      assert [:start, :middle, :end] == :erlang.binary_to_term(result)
+
+      # Test multiple prepends and appends
+      operand3 = :erlang.term_to_binary({:list_prepend, [:very, :beginning]})
+      assert :ok == ExRock.merge(db, "my_list", operand3)
+
+      operand4 = :erlang.term_to_binary({:list_append, [:very, :end]})
+      assert :ok == ExRock.merge(db, "my_list", operand4)
+
+      {:ok, final_result} = ExRock.get(db, "my_list")
+      assert [:very, :beginning, :start, :middle, :end, :very, :end] == :erlang.binary_to_term(final_result)
+    end
+
     test "binary_append operations", context do
       path = context.db_path
 
@@ -620,14 +692,19 @@ defmodule ExRock.MergeTest do
       assert 15 == :erlang.binary_to_term(result1)
 
       # Test list operations in column families
-      initial_list = :erlang.term_to_binary([:a, :b])
+      initial_list = :erlang.term_to_binary([:b, :c])
       assert :ok == ExRock.put_cf(db, "data", "my_list", initial_list)
 
-      operand3 = :erlang.term_to_binary({:list_append, [:c, :d]})
+      # Test append
+      operand3 = :erlang.term_to_binary({:list_append, [:d, :e]})
       assert :ok == ExRock.merge_cf(db, "data", "my_list", operand3)
 
+      # Test prepend
+      operand4 = :erlang.term_to_binary({:list_prepend, [:a]})
+      assert :ok == ExRock.merge_cf(db, "data", "my_list", operand4)
+
       {:ok, result3} = ExRock.get_cf(db, "data", "my_list")
-      assert [:a, :b, :c, :d] == :erlang.binary_to_term(result3)
+      assert [:a, :b, :c, :d, :e] == :erlang.binary_to_term(result3)
     end
 
     test "bitset merge operator with column families", context do

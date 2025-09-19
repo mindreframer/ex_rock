@@ -39,6 +39,7 @@ end
 * snapshots
 * checkpoints (Online backups)
 * backup api
+* merge operators (counter, erlang term, bitset)
 
 ## Main requirements for a driver
 * Reliability

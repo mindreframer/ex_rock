@@ -17,9 +17,9 @@ end
 ```
 
 ## Versions
-| ExRocket   | RocksDB |
-| -------- | ------- |
-| 0.1.x  | 8.10.0    |
+| ExRocket   | RocksDB | rust-rocksdb | 
+| -------- | ------- | ------- |
+| 0.3.x  | 10.4.2    | 0.24.x |
 
 
 ## Supported OS
